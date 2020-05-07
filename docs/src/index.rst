@@ -20,12 +20,13 @@ Automated calibration of the InVEST urban cooling model with simulated annealing
    :maxdepth: 1
    :caption: Development:
 
+   changelog
    contributing
 
 Installation
 ------------
 
-This library requires the `gdal` and `rtree` libraries, which can easily be installed with conda as in:
+This library requires specific versions of the `gdal` and `rtree` libraries, which can easily be installed with conda as in:
 
 .. code-block:: bash
 
