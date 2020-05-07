@@ -1,7 +1,7 @@
 # coding=utf-8
 
 from io import open  # compatible enconding parameter
-from os import path
+from os import environ, path
 
 from setuptools import find_packages, setup
 
@@ -29,7 +29,13 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
     all_reqs = f.read().split('\n')
 
-install_requires = [x.strip() for x in all_reqs if 'git+' not in x]
+# See https://github.com/readthedocs/readthedocs.org/issues/5512
+on_rtd = environ.get('READTHEDOCS') == 'True'
+if on_rtd:
+    install_requires = ['click']
+else:
+    install_requires = [x.strip() for x in all_reqs if 'git+' not in x]
+
 dependency_links = [
     x.strip().replace('git+', '') for x in all_reqs if x.startswith('git+')
 ]

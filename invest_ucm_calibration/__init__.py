@@ -221,6 +221,89 @@ class UCMCalibrator(simanneal.Annealer):
                  workspace_dir=None, initial_solution=None,
                  extra_ucm_args=None, metric=None, stepsize=None,
                  num_workers=None, num_steps=None, num_update_logs=None):
+        """
+        Parameters
+        ----------
+        lulc_raster_filepath : str
+            Path to the raster of land use/land cover (LULC) file
+        biophysical_table_filepath : str
+            Path to the biophysical table CSV file
+        aoi_vector_filepath : str
+            Path to a vector delineating the areas of interest (required to
+            launch the urban cooling model, but it does not affect the
+            calibration)
+        cc_method : str
+            Cooling capacity calculation method. Can be either 'factors' or
+            'intensity'
+        ref_et_raster_filepaths : str or list-like
+            Path to the reference evapotranspiration raster, or sequence of
+            strings with a path to the reference evapotranspiration raster
+        T_refs : numeric or list-like, optional
+            Reference air temperature. If not provided, it will be set as the
+            minimum observed temperature (raster or station measurements, for
+            each respective date if calibrating for multiple dates).
+        uhi_maxs : numeric or list-like, optional
+            Magnitude of the UHI effect. If not provided, it will be set as the
+            difference between the maximum and minimum observed temperature
+            (raster or station measurements, for each respective date if
+            calibrating for multiple dates).
+        T_raster_filepaths : str or list-like, optional
+            Path to the observed temperature raster, or sequence of strings
+            with a path to the observed temperature rasters. The raster must
+            be aligned to the LULC raster. Required if calibrating against
+            temperature map(s).
+        station_T_filepath : str, optional
+            Path to a table of air temperature measurements where each column
+            corresponds to a monitoring station and each row to a datetime.
+            Required if calibrating against station measurements.
+        station_locations_filepath : str, optional
+            Path to a table with the locations of each monitoring station,
+            where the first column features the station labels (that match the
+            columns of the table of air temperature measurements), and there
+            are (at least) a column labelled 'x' and a column labelled 'y'
+            that correspod to the locations of each station (in the same CRS
+            as the other rasters). Required if calibrating against station
+            measurements.
+        workspace_dir : str, optional
+            Path to the folder where the model outputs will be written. If not
+            provided, a temporary directory will be used.
+        initial_solution : list-like, optional
+            Sequence with the parameter values used as initial solution, of
+            the form (t_air_average_radius, green_area_cooling_distance,
+            cc_weight_shade, cc_weight_albedo, cc_weight_eti). If not provided,
+            the default values of the urban cooling model will be used.
+        extra_ucm_args : dict-like, optional
+            Other keyword arguments to be passed to the `execute` method of
+            the urban cooling model.
+        metric : {'R2', 'MAE', 'RMSE'}, optional
+            Target metric to optimize in the calibration. Can be either 'R2'
+            for the R squared (which will be maximized), 'MAE' for the mean
+            absolute error (which will be minimized) or 'RMSE' for the (root)
+            mean squared error (which will be minimized). If not provided, the
+            value set in `settings.DEFAULT_METRIC` will be used.
+        stepsize : numeric, optional
+            Step size in terms of the fraction of each parameter when looking
+            to select a neighbor solution for the following iteration. The
+            neighbor will be randomly drawn from an uniform distribution in the
+            [param - stepsize * param, param + stepsize * param] range. For
+            example, with a step size of 0.3 and a 't_air_average_radius' of
+            500 at a given iteration, the solution for the next iteration will
+            be uniformly sampled from the [350, 650] range. If not provided, it
+            will be taken from `settings.DEFAULT_STEPSIZE`.
+        num_workers : int, optional
+            Number of workers so that the simulations of each iteration can be
+            executed at scale. Only useful if calibrating for multiple dates.
+            If not provided, it will be set automatically depending on the
+            number of dates and available number of processors in the CPU.
+        num_steps : int, optional.
+            Number of iterations of the simulated annealing procedure. If not
+            provided, the value set in `settings.DEFAULT_NUM_STEPS` will be
+            used.
+        num_update_logs : int, default 100
+            Number of updates that will be logged. If `num_steps` is equal to
+            `num_update_logs`, each iteration will be logged. If not provided,
+            the value set in `settings.DEFAULT_UPDATE_LOGS` will be used.
+        """
         # init the model wrapper
         self.mw = ModelWrapper(
             lulc_raster_filepath, biophysical_table_filepath,
