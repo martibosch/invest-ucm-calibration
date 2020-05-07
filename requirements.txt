@@ -1,7 +1,9 @@
 click
 dask[delayed]
+fiona
 natcap.invest==3.8.0
 numpy
 rasterio
 scikit-learn
+shapely
 simanneal

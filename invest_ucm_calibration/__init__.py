@@ -19,26 +19,28 @@ __version__ = '0.0.1'
 
 # utils
 def _is_sequence(arg):
-    # Based on steveha's answer in stackoverflow https://bit.ly/3dpnf0m
-    return (not hasattr(arg, "strip") and hasattr(arg, "__getitem__")
-            or hasattr(arg, "__iter__"))
+    # # Based on steveha's answer in stackoverflow https://bit.ly/3dpnf0m
+    # return (not hasattr(arg, "strip") and hasattr(arg, "__getitem__")
+    #         or hasattr(arg, "__iter__"))
+    return hasattr(arg, '__getitem__') or hasattr(arg, '__iter__')
 
 
-def _preprocess_T_rasters(T_raster_filepaths):
+def _preprocess_t_rasters(t_raster_filepaths):
     obs_arrs = []
-    T_refs = []
+    t_refs = []
     uhi_maxs = []
-    for T_raster_filepath in T_raster_filepaths:
-        with rio.open(T_raster_filepath) as src:
-            T_arr = src.read(1)
+    for t_raster_filepath in t_raster_filepaths:
+        with rio.open(t_raster_filepath) as src:
+            t_arr = src.read(1)
             # use `np.nan` for nodata values to ensure that we get the right
             # min/max values with `np.nanmin`/`np.nanmax`
-            T_arr = np.where(T_arr == src.nodata, T_arr, np.nan)
-            obs_arrs.append(T_arr)
-            T_min = np.nanmin(T_arr)
-            T_refs.append(T_min)
-            uhi_maxs.append(np.nanmax(T_arr) - T_min)
-    return np.concatenate(obs_arrs), T_refs, uhi_maxs
+            t_arr = np.where(t_arr != src.nodata, t_arr, np.nan)
+            obs_arrs.append(t_arr)
+            t_min = np.nanmin(t_arr)
+            t_refs.append(t_min)
+            uhi_maxs.append(np.nanmax(t_arr) - t_min)
+
+    return np.concatenate(obs_arrs), t_refs, uhi_maxs
 
 
 def _inverted_r2_score(*args, **kwargs):
@@ -47,11 +49,11 @@ def _inverted_r2_score(*args, **kwargs):
     return 1 - metrics.r2_score(*args, **kwargs)
 
 
-class ModelWrapper:
+class UCMWrapper:
     def __init__(self, lulc_raster_filepath, biophysical_table_filepath,
                  aoi_vector_filepath, cc_method, ref_et_raster_filepaths,
-                 T_refs=None, uhi_maxs=None, T_raster_filepaths=None,
-                 station_T_filepath=None, station_locations_filepath=None,
+                 t_refs=None, uhi_maxs=None, t_raster_filepaths=None,
+                 station_t_filepath=None, station_locations_filepath=None,
                  workspace_dir=None, extra_ucm_args=None, num_workers=None):
         # model parameters
         self.base_args = {
@@ -78,32 +80,33 @@ class ModelWrapper:
         self.base_args.update(workspace_dir=workspace_dir)
 
         # evapotranspiration rasters for each date
-        if not _is_sequence(ref_et_raster_filepaths):
+        if isinstance(ref_et_raster_filepaths, str):
             ref_et_raster_filepaths = [ref_et_raster_filepaths]
         self.ref_et_raster_filepaths = ref_et_raster_filepaths
 
         # calibration approaches
-        if T_raster_filepaths is not None:
+        if t_raster_filepaths is not None:
             # calibrate against a map
-            if not _is_sequence(T_raster_filepaths):
-                T_raster_filepaths = [T_raster_filepaths]
+            if isinstance(t_raster_filepaths, str):
+                t_raster_filepaths = [t_raster_filepaths]
+
             # Tref and UHImax
-            if T_refs is None:
+            if t_refs is None:
                 if uhi_maxs is None:
-                    obs_arr, T_refs, uhi_maxs = _preprocess_T_rasters(
-                        T_raster_filepaths)
+                    obs_arr, t_refs, uhi_maxs = _preprocess_t_rasters(
+                        t_raster_filepaths)
                 else:
-                    obs_arr, T_refs, _ = _preprocess_T_rasters(
-                        T_raster_filepaths)
+                    obs_arr, t_refs, _ = _preprocess_t_rasters(
+                        t_raster_filepaths)
             else:
                 if uhi_maxs is None:
-                    obs_arr, _, uhi_maxs = _preprocess_T_rasters(
-                        T_raster_filepaths)
+                    obs_arr, _, uhi_maxs = _preprocess_t_rasters(
+                        t_raster_filepaths)
                 else:
-                    obs_arr, _, __ = _preprocess_T_rasters(T_raster_filepaths)
+                    obs_arr, _, __ = _preprocess_t_rasters(t_raster_filepaths)
 
             # method to predict the temperature values
-            self._predict_T = self.predict_T_arr
+            self._predict_t = self.predict_t_arr
             # TODO: use xarray?
             # T_da = xr.open_dataarray(tair_da_filepath)
             # self.Tref_ser = T_da.groupby('time').min(['x', 'y']).to_pandas()
@@ -128,30 +131,30 @@ class ModelWrapper:
                 self.meta = src.meta.copy()
                 self.data_mask = src.dataset_mask().astype(bool)
 
-            station_T_df = pd.read_csv(station_T_filepath,
+            station_t_df = pd.read_csv(station_t_filepath,
                                        index_col=0)[station_location_df.index]
-            station_T_df.index = pd.to_datetime(station_T_df.index)
-            self.dates = station_T_df.index
-            self.station_tair_df = station_T_df
+            station_t_df.index = pd.to_datetime(station_t_df.index)
+            self.dates = station_t_df.index
+            self.station_tair_df = station_t_df
 
             # tref and uhi max
-            if T_refs is None:
-                T_refs = station_T_df.min(axis=1)
+            if t_refs is None:
+                t_refs = station_t_df.min(axis=1)
             if uhi_maxs is None:
-                uhi_maxs = station_T_df.max(axis=1) - T_refs
+                uhi_maxs = station_t_df.max(axis=1) - t_refs
 
             # prepare the observation array
-            obs_arr = station_T_df.values  # .flatten()
+            obs_arr = station_t_df.values  # .flatten()
 
             # method to predict the temperature values
-            self._predict_T = self._predict_T_stations
+            self._predict_t = self._predict_t_stations
 
         # store reference temperatures and UHI magnitudes as class attributes
-        if not _is_sequence(T_refs):
-            T_refs = [T_refs]
+        if not _is_sequence(t_refs):
+            t_refs = [t_refs]
         if not _is_sequence(uhi_maxs):
             uhi_maxs = [uhi_maxs]
-        self.T_refs = T_refs
+        self.t_refs = t_refs
         self.uhi_maxs = uhi_maxs
 
         # flat observation array to compute the calibration metric
@@ -165,7 +168,7 @@ class ModelWrapper:
                               os.cpu_count())
         self.num_workers = num_workers
 
-    def predict_T_arr(self, i, model_args=None):
+    def predict_t_arr(self, i, model_args=None):
         if model_args is None:
             model_args = self.base_args
         # TODO: support unaligned rasters?
@@ -180,7 +183,7 @@ class ModelWrapper:
             ref_eto_raster_path=self.ref_et_raster_filepaths[i],
             # t_ref=Tref_da.sel(time=date).item(),
             # uhi_max=uhi_max_da.sel(time=date).item()
-            t_ref=self.T_refs[i],
+            t_ref=self.t_refs[i],
             uhi_max=self.uhi_maxs[i])
         ucm.execute(date_args)
 
@@ -190,14 +193,14 @@ class ModelWrapper:
             # return src.read(1, **read_kws)
             return src.read(1)
 
-    def _predict_T_stations(self, i, model_args=None):
-        return self.predict_T_arr(
+    def _predict_t_stations(self, i, model_args=None):
+        return self.predict_t_arr(
             i, model_args)[self.station_rows, self.station_cols]
 
-    def predict_T(self, model_args=None):
-        # we could also iterate over `self.T_refs` or `self.uhi_maxs`
+    def predict_t(self, model_args=None):
+        # we could also iterate over `self.t_refs` or `self.uhi_maxs`
         pred_delayed = [
-            dask.delayed(self._predict_T)(i, model_args)
+            dask.delayed(self._predict_t)(i, model_args)
             for i in range(len(self.ref_et_raster_filepaths))
         ]
 
@@ -206,8 +209,8 @@ class ModelWrapper:
                          num_workers=self.num_workers))
 
     # TODO: support unaligned rasters?
-    # def _predict_T_map(self, date, model_args=None):
-    #     return self.predict_T_arr(date, model_args, read_kws={
+    # def _predict_t_map(self, date, model_args=None):
+    #     return self.predict_t_arr(date, model_args, read_kws={
     #         'out_shape': self.map_shape,
     #         'resampling': self.resampling
     #     }).flatten()
@@ -216,8 +219,8 @@ class ModelWrapper:
 class UCMCalibrator(simanneal.Annealer):
     def __init__(self, lulc_raster_filepath, biophysical_table_filepath,
                  aoi_vector_filepath, cc_method, ref_et_raster_filepaths,
-                 T_refs=None, uhi_maxs=None, T_raster_filepaths=None,
-                 station_T_filepath=None, station_locations_filepath=None,
+                 t_refs=None, uhi_maxs=None, t_raster_filepaths=None,
+                 station_t_filepath=None, station_locations_filepath=None,
                  workspace_dir=None, initial_solution=None,
                  extra_ucm_args=None, metric=None, stepsize=None,
                  num_workers=None, num_steps=None, num_update_logs=None):
@@ -238,7 +241,7 @@ class UCMCalibrator(simanneal.Annealer):
         ref_et_raster_filepaths : str or list-like
             Path to the reference evapotranspiration raster, or sequence of
             strings with a path to the reference evapotranspiration raster
-        T_refs : numeric or list-like, optional
+        t_refs : numeric or list-like, optional
             Reference air temperature. If not provided, it will be set as the
             minimum observed temperature (raster or station measurements, for
             each respective date if calibrating for multiple dates).
@@ -247,12 +250,12 @@ class UCMCalibrator(simanneal.Annealer):
             difference between the maximum and minimum observed temperature
             (raster or station measurements, for each respective date if
             calibrating for multiple dates).
-        T_raster_filepaths : str or list-like, optional
+        t_raster_filepaths : str or list-like, optional
             Path to the observed temperature raster, or sequence of strings
             with a path to the observed temperature rasters. The raster must
             be aligned to the LULC raster. Required if calibrating against
             temperature map(s).
-        station_T_filepath : str, optional
+        station_t_filepath : str, optional
             Path to a table of air temperature measurements where each column
             corresponds to a monitoring station and each row to a datetime.
             Required if calibrating against station measurements.
@@ -305,12 +308,12 @@ class UCMCalibrator(simanneal.Annealer):
             the value set in `settings.DEFAULT_UPDATE_LOGS` will be used.
         """
         # init the model wrapper
-        self.mw = ModelWrapper(
+        self.ucm_wrapper = UCMWrapper(
             lulc_raster_filepath, biophysical_table_filepath,
             aoi_vector_filepath, cc_method, ref_et_raster_filepaths,
-            T_refs=T_refs, uhi_maxs=uhi_maxs,
-            T_raster_filepaths=T_raster_filepaths,
-            station_T_filepath=station_T_filepath,
+            t_refs=t_refs, uhi_maxs=uhi_maxs,
+            t_raster_filepaths=t_raster_filepaths,
+            station_t_filepath=station_t_filepath,
             station_locations_filepath=station_locations_filepath,
             workspace_dir=workspace_dir, extra_ucm_args=extra_ucm_args,
             num_workers=num_workers)
@@ -356,13 +359,14 @@ class UCMCalibrator(simanneal.Annealer):
         self.state = state_neighbour
 
     def energy(self):
-        model_args = self.mw.base_args.copy()
+        model_args = self.ucm_wrapper.base_args.copy()
         model_args.update(t_air_average_radius=self.state[0],
                           green_area_cooling_distance=self.state[1],
                           cc_weight_shade=self.state[2],
                           cc_weight_albedo=self.state[3],
                           cc_weight_eti=self.state[4])
 
-        pred_arr = self.mw.predict_T(model_args=model_args)
+        pred_arr = self.ucm_wrapper.predict_t(model_args=model_args).flatten()
 
-        return self.compute_metric(self.mw.obs_arr, pred_arr[self.mw.obs_mask])
+        return self.compute_metric(self.ucm_wrapper.obs_arr,
+                                   pred_arr[self.ucm_wrapper.obs_mask])

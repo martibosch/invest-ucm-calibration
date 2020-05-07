@@ -5,6 +5,7 @@ import warnings
 import click
 
 import invest_ucm_calibration as iuc
+from invest_ucm_calibration import settings
 
 
 # utils for the CLI
@@ -197,9 +198,9 @@ def cli(lulc_raster_filepath, biophysical_table_filepath, aoi_vector_filepath,
 
     ucm_calibrator = iuc.UCMCalibrator(
         lulc_raster_filepath, biophysical_table_filepath, aoi_vector_filepath,
-        cc_method, ref_et_raster_filepaths, T_refs=t_refs, uhi_maxs=uhi_maxs,
-        T_raster_filepaths=t_raster_filepaths,
-        station_T_filepath=station_t_filepath,
+        cc_method, ref_et_raster_filepaths, t_refs=t_refs, uhi_maxs=uhi_maxs,
+        t_raster_filepaths=t_raster_filepaths,
+        station_t_filepath=station_t_filepath,
         station_locations_filepath=station_locations_filepath,
         workspace_dir=workspace_dir, initial_solution=initial_solution,
         extra_ucm_args=extra_ucm_args, metric=metric, stepsize=stepsize,
@@ -214,6 +215,6 @@ def cli(lulc_raster_filepath, biophysical_table_filepath, aoi_vector_filepath,
                 {
                     param_key: param_value
                     for param_key, param_value in zip(
-                        ucm_calibrator.DEFAULT_MODEL_PARAMS, solution)
+                        settings.DEFAULT_MODEL_PARAMS, solution)
                 }, dst)
         logger.info("Dumped calibrated parameters to %s", dst_filepath)

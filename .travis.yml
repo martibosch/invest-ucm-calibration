@@ -2,17 +2,30 @@
 
 language: python
 python:
-  - 2.7
   - 3.6
 
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
+before_install:
+  - pip install --upgrade pip
+  - pip install --upgrade wheel
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set show_channel_urls true
+  - conda update conda
+  - conda config --add channels conda-forge --force
+  - conda create --quiet --name invest-ucm-calibration python=$TRAVIS_PYTHON_VERSION
+  - source activate invest-ucm-calibration
+  - conda install -c conda-forge 'gdal<3.0' rtree 'shapely<1.7.0'
+  - conda info --all
+  - conda list  
 install:
   - pip install -r requirements-dev.txt
   - pip install -r requirements.txt
 
 # command to run tests, e.g. python setup.py test
 script:
-  - tox
   - coverage run --source invest_ucm_calibration -m py.test
 
 after_success:
