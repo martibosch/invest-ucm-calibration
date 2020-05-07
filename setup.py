@@ -35,18 +35,14 @@ dependency_links = [
 ]
 
 setup(
-    name='invest-ucm-calibration',
-    version=__version__,
-    description=_description,
-    long_description=long_description,
-    long_description_content_type='text/markdown',
-    classifiers=classifiers,
+    name='invest-ucm-calibration', version=__version__,
+    description=_description, long_description=long_description,
+    long_description_content_type='text/markdown', classifiers=classifiers,
     url='https://github.com/martibosch/invest-ucm-calibration',
-    author='Martí Bosch',
-    author_email='marti.bosch@epfl.ch',
-    license='GPL-3.0',
-    packages=find_packages(exclude=['docs', 'tests*']),
-    include_package_data=True,
-    install_requires=install_requires,
-    dependency_links=dependency_links,
-)
+    author='Martí Bosch', author_email='marti.bosch@epfl.ch',
+    license='GPL-3.0', packages=find_packages(exclude=['docs', 'tests*']),
+    include_package_data=True, install_requires=install_requires,
+    dependency_links=dependency_links, entry_points='''
+    [console_scripts]
+    invest-ucm-calibration=invest_ucm_calibration.cli.main:cli
+    ''')
