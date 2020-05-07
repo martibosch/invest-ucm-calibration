@@ -12,18 +12,9 @@ from natcap.invest import urban_cooling_model as ucm
 from rasterio import transform
 from sklearn import metrics
 
-__version__ = '0.0.1'
+from . import settings
 
-# constants useful for the invest ucm
-# DEFAULT_INITIAL_SOLUTION = [500, 100, 0.6, 0.2, 0.2]
-DEFAULT_MODEL_PARAMS = {
-    't_air_average_radius': 500,
-    'green_area_cooling_distance': 100,
-    'cc_weight_shade': 0.6,
-    'cc_weight_albedo': 0.2,
-    'cc_weight_eti': 0.2
-}
-DEFAULT_EXTRA_UCM_ARGS = {'do_valuation': False}
+__version__ = '0.0.1'
 
 
 # utils
@@ -73,9 +64,9 @@ class ModelWrapper:
         #     model_params = DEFAULT_MODEL_PARAMS
         # self.base_args.update(**model_params)
         if extra_ucm_args is None:
-            extra_ucm_args = DEFAULT_EXTRA_UCM_ARGS
+            extra_ucm_args = settings.DEFAULT_EXTRA_UCM_ARGS
         if 'do_valuation' not in extra_ucm_args:
-            extra_ucm_args['do_valuation'] = DEFAULT_EXTRA_UCM_ARGS[
+            extra_ucm_args['do_valuation'] = settings.DEFAULT_EXTRA_UCM_ARGS[
                 'do_valuation']
         self.base_args.update(**extra_ucm_args)
 
@@ -228,8 +219,9 @@ class UCMCalibrator(simanneal.Annealer):
                  T_refs=None, uhi_maxs=None, T_raster_filepaths=None,
                  station_T_filepath=None, station_locations_filepath=None,
                  workspace_dir=None, initial_solution=None,
-                 extra_ucm_args=None, metric='R2', stepsize=0.3,
-                 num_workers=None, num_steps=100, num_update_logs=100):
+                 extra_ucm_args=None, metric=None, stepsize=None,
+                 num_workers=None, num_steps=None, num_update_logs=None):
+        # init the model wrapper
         self.mw = ModelWrapper(
             lulc_raster_filepath, biophysical_table_filepath,
             aoi_vector_filepath, cc_method, ref_et_raster_filepaths,
@@ -239,7 +231,10 @@ class UCMCalibrator(simanneal.Annealer):
             station_locations_filepath=station_locations_filepath,
             workspace_dir=workspace_dir, extra_ucm_args=extra_ucm_args,
             num_workers=num_workers)
+
         # metric
+        if metric is None:
+            metric = settings.DEFAULT_METRIC
         if metric == 'R2':
             # since we need to maximize (instead of minimize) the r2, the
             # simulated annealing will actually minimize 1 - R^2
@@ -248,13 +243,18 @@ class UCMCalibrator(simanneal.Annealer):
             self.compute_metric = metrics.mean_absolute_error
         else:  # 'RMSE'
             self.compute_metric = metrics.mean_squared_error
+
         # step size to find neigbhor solution
+        if stepsize is None:
+            stepsize = settings.DEFAULT_STEPSIZE
         self.stepsize = stepsize
+
         # initial solution
         if initial_solution is None:
-            initial_solution = list(DEFAULT_MODEL_PARAMS.values())
+            initial_solution = list(settings.DEFAULT_MODEL_PARAMS.values())
         # init the parent `Annealer` instance with the initial solution
         super(UCMCalibrator, self).__init__(initial_solution)
+
         # nicer parameters for the urban cooling model solution space
         self.steps = num_steps
         self.updates = num_update_logs
