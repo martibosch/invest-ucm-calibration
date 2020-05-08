@@ -342,7 +342,11 @@ class UCMCalibrator(simanneal.Annealer):
         super(UCMCalibrator, self).__init__(initial_solution)
 
         # nicer parameters for the urban cooling model solution space
+        if num_steps is None:
+            num_steps = settings.DEFAULT_NUM_STEPS
         self.steps = num_steps
+        if num_update_logs is None:
+            num_update_logs = settings.DEFAULT_NUM_UPDATE_LOGS
         self.updates = num_update_logs
 
     def move(self):
