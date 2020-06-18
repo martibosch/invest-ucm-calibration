@@ -17,10 +17,6 @@ class TestIUC(unittest.TestCase):
         self.lulc_raster_filepath = path.join(self.data_dir, 'lulc.tif')
         self.biophysical_table_filepath = path.join(self.data_dir,
                                                     'biophysical-table.csv')
-        # In the calibration, the urban cooling model will not use, yet it
-        # needs to be in the arguments `aoi_vector_filepath`. We thus set it
-        # to an inexistent file
-        self.aoi_vector_filepath = path.join(self.data_dir, 'aoi-vector.shp')
         self.ref_et_raster_filepaths = glob.glob(
             path.join(self.data_dir, 'ref_et*.tif'))
 
@@ -52,59 +48,60 @@ class TestIUC(unittest.TestCase):
 
         # calibrate with map
         # no t_refs/no uhi_maxs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath, self.biophysical_table_filepath,
-            self.aoi_vector_filepath, self.cc_method, ref_et_raster_filepath,
-            t_raster_filepaths=t_raster_filepath, num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs)
+        iuc.UCMCalibrator(self.lulc_raster_filepath,
+                          self.biophysical_table_filepath, self.cc_method,
+                          ref_et_raster_filepath,
+                          t_raster_filepaths=t_raster_filepath,
+                          num_steps=self.num_steps,
+                          num_update_logs=self.num_update_logs)
         # no t_refs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath, self.biophysical_table_filepath,
-            self.aoi_vector_filepath, self.cc_method, ref_et_raster_filepath,
-            uhi_maxs=uhi_maxs, t_raster_filepaths=t_raster_filepath,
-            num_steps=self.num_steps, num_update_logs=self.num_update_logs)
+        iuc.UCMCalibrator(self.lulc_raster_filepath,
+                          self.biophysical_table_filepath, self.cc_method,
+                          ref_et_raster_filepath, uhi_maxs=uhi_maxs,
+                          t_raster_filepaths=t_raster_filepath,
+                          num_steps=self.num_steps,
+                          num_update_logs=self.num_update_logs)
         # no uhi_maxs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath, self.biophysical_table_filepath,
-            self.aoi_vector_filepath, self.cc_method, ref_et_raster_filepath,
-            t_refs=t_refs, t_raster_filepaths=t_raster_filepath,
-            num_steps=self.num_steps, num_update_logs=self.num_update_logs)
+        iuc.UCMCalibrator(self.lulc_raster_filepath,
+                          self.biophysical_table_filepath, self.cc_method,
+                          ref_et_raster_filepath, t_refs=t_refs,
+                          t_raster_filepaths=t_raster_filepath,
+                          num_steps=self.num_steps,
+                          num_update_logs=self.num_update_logs)
         # both t_refs/uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath, self.biophysical_table_filepath,
-            self.aoi_vector_filepath, self.cc_method, ref_et_raster_filepath,
-            t_refs=t_refs, uhi_maxs=uhi_maxs,
-            t_raster_filepaths=t_raster_filepath, num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs)
+            self.cc_method, ref_et_raster_filepath, t_refs=t_refs,
+            uhi_maxs=uhi_maxs, t_raster_filepaths=t_raster_filepath,
+            num_steps=self.num_steps, num_update_logs=self.num_update_logs)
 
         # calibrate with measurements
         # no t_refs/no uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath, self.biophysical_table_filepath,
-            self.aoi_vector_filepath, self.cc_method, ref_et_raster_filepath,
+            self.cc_method, ref_et_raster_filepath,
             station_t_filepath=self.station_t_one_day_filepath,
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps, num_update_logs=self.num_update_logs)
         # no t_refs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath, self.biophysical_table_filepath,
-            self.aoi_vector_filepath, self.cc_method, ref_et_raster_filepath,
-            uhi_maxs=uhi_maxs,
+            self.cc_method, ref_et_raster_filepath, uhi_maxs=uhi_maxs,
             station_t_filepath=self.station_t_one_day_filepath,
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps, num_update_logs=self.num_update_logs)
         # no uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath, self.biophysical_table_filepath,
-            self.aoi_vector_filepath, self.cc_method, ref_et_raster_filepath,
-            t_refs=t_refs, station_t_filepath=self.station_t_one_day_filepath,
+            self.cc_method, ref_et_raster_filepath, t_refs=t_refs,
+            station_t_filepath=self.station_t_one_day_filepath,
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps, num_update_logs=self.num_update_logs)
         # both t_refs/uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath, self.biophysical_table_filepath,
-            self.aoi_vector_filepath, self.cc_method, ref_et_raster_filepath,
-            t_refs=t_refs, uhi_maxs=uhi_maxs,
+            self.cc_method, ref_et_raster_filepath, t_refs=t_refs,
+            uhi_maxs=uhi_maxs,
             station_t_filepath=self.station_t_one_day_filepath,
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps, num_update_logs=self.num_update_logs)
@@ -117,24 +114,21 @@ class TestIUC(unittest.TestCase):
         # calibrate with map
         # no t_refs/no uhi_maxs
         iuc.UCMCalibrator(self.lulc_raster_filepath,
-                          self.biophysical_table_filepath,
-                          self.aoi_vector_filepath, self.cc_method,
+                          self.biophysical_table_filepath, self.cc_method,
                           self.ref_et_raster_filepaths,
                           t_raster_filepaths=self.t_raster_filepaths,
                           num_steps=self.num_steps,
                           num_update_logs=self.num_update_logs)
         # no t_refs
         iuc.UCMCalibrator(self.lulc_raster_filepath,
-                          self.biophysical_table_filepath,
-                          self.aoi_vector_filepath, self.cc_method,
+                          self.biophysical_table_filepath, self.cc_method,
                           self.ref_et_raster_filepaths, uhi_maxs=uhi_maxs,
                           t_raster_filepaths=self.t_raster_filepaths,
                           num_steps=self.num_steps,
                           num_update_logs=self.num_update_logs)
         # no uhi_maxs
         iuc.UCMCalibrator(self.lulc_raster_filepath,
-                          self.biophysical_table_filepath,
-                          self.aoi_vector_filepath, self.cc_method,
+                          self.biophysical_table_filepath, self.cc_method,
                           self.ref_et_raster_filepaths, t_refs=t_refs,
                           t_raster_filepaths=self.t_raster_filepaths,
                           num_steps=self.num_steps,
@@ -142,42 +136,37 @@ class TestIUC(unittest.TestCase):
         # both t_refs/uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath, self.biophysical_table_filepath,
-            self.aoi_vector_filepath, self.cc_method,
-            self.ref_et_raster_filepaths, t_refs=t_refs, uhi_maxs=uhi_maxs,
-            t_raster_filepaths=self.t_raster_filepaths,
+            self.cc_method, self.ref_et_raster_filepaths, t_refs=t_refs,
+            uhi_maxs=uhi_maxs, t_raster_filepaths=self.t_raster_filepaths,
             num_steps=self.num_steps, num_update_logs=self.num_update_logs)
 
         # calibrate with measurements
         # no t_refs/no uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath, self.biophysical_table_filepath,
-            self.aoi_vector_filepath, self.cc_method,
-            self.ref_et_raster_filepaths,
+            self.cc_method, self.ref_et_raster_filepaths,
             station_t_filepath=self.station_t_filepath,
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps, num_update_logs=self.num_update_logs)
         # no t_refs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath, self.biophysical_table_filepath,
-            self.aoi_vector_filepath, self.cc_method,
-            self.ref_et_raster_filepaths, uhi_maxs=uhi_maxs,
+            self.cc_method, self.ref_et_raster_filepaths, uhi_maxs=uhi_maxs,
             station_t_filepath=self.station_t_filepath,
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps, num_update_logs=self.num_update_logs)
         # no uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath, self.biophysical_table_filepath,
-            self.aoi_vector_filepath, self.cc_method,
-            self.ref_et_raster_filepaths, t_refs=t_refs,
+            self.cc_method, self.ref_et_raster_filepaths, t_refs=t_refs,
             station_t_filepath=self.station_t_filepath,
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps, num_update_logs=self.num_update_logs)
         # both t_refs/uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath, self.biophysical_table_filepath,
-            self.aoi_vector_filepath, self.cc_method,
-            self.ref_et_raster_filepaths, t_refs=t_refs, uhi_maxs=uhi_maxs,
-            station_t_filepath=self.station_t_filepath,
+            self.cc_method, self.ref_et_raster_filepaths, t_refs=t_refs,
+            uhi_maxs=uhi_maxs, station_t_filepath=self.station_t_filepath,
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps, num_update_logs=self.num_update_logs)
 
@@ -189,10 +178,6 @@ class TestCLI(unittest.TestCase):
         self.lulc_raster_filepath = path.join(self.data_dir, 'lulc.tif')
         self.biophysical_table_filepath = path.join(self.data_dir,
                                                     'biophysical-table.csv')
-        # In the calibration, the urban cooling model will not use, yet it
-        # needs to be in the arguments `aoi_vector_filepath`. We thus set it
-        # to an inexistent file
-        self.aoi_vector_filepath = path.join(self.data_dir, 'aoi-vector.shp')
         self.ref_et_raster_filepaths = glob.glob(
             path.join(self.data_dir, 'ref_et*.tif'))
 
@@ -230,11 +215,10 @@ class TestCLI(unittest.TestCase):
         # calibrate with map
         result = self.runner.invoke(main.cli, [
             self.lulc_raster_filepath, self.biophysical_table_filepath,
-            self.aoi_vector_filepath, self.cc_method,
-            '--ref-et-raster-filepaths', ref_et_raster_filepath, '--t-refs',
-            t_refs, '--uhi-maxs', uhi_maxs, '--t-raster-filepaths',
-            t_raster_filepath, '--num-steps', 1, '--num-update-logs', 1,
-            '--dst-filepath',
+            self.cc_method, '--ref-et-raster-filepaths',
+            ref_et_raster_filepath, '--t-refs', t_refs, '--uhi-maxs', uhi_maxs,
+            '--t-raster-filepaths', t_raster_filepath, '--num-steps', 1,
+            '--num-update-logs', 1, '--dst-filepath',
             path.join(self.workspace_dir, 'foo.json')
         ])
         self.assertEqual(result.exit_code, 0)
@@ -242,12 +226,11 @@ class TestCLI(unittest.TestCase):
         # calibrate with measurements
         result = self.runner.invoke(main.cli, [
             self.lulc_raster_filepath, self.biophysical_table_filepath,
-            self.aoi_vector_filepath, self.cc_method,
-            '--ref-et-raster-filepaths', ref_et_raster_filepath, '--t-refs',
-            t_refs, '--uhi-maxs', uhi_maxs, '--station-t-filepath',
-            self.station_t_one_day_filepath, '--station-locations-filepath',
-            self.station_locations_filepath, '--num-steps', 1,
-            '--num-update-logs', 1, '--dst-filepath',
+            self.cc_method, '--ref-et-raster-filepaths',
+            ref_et_raster_filepath, '--t-refs', t_refs, '--uhi-maxs', uhi_maxs,
+            '--station-t-filepath', self.station_t_one_day_filepath,
+            '--station-locations-filepath', self.station_locations_filepath,
+            '--num-steps', 1, '--num-update-logs', 1, '--dst-filepath',
             path.join(self.workspace_dir, 'bar.json')
         ])
         self.assertEqual(result.exit_code, 0)
@@ -261,8 +244,8 @@ class TestCLI(unittest.TestCase):
     #         self.lulc_raster_filepath, self.biophysical_table_filepath,
     #         self.aoi_vector_filepath, self.cc_method,
     #         self.ref_et_raster_filepaths, t_refs, uhi_maxs,
-    #         self.t_raster_filepaths, None, None, None, None, None, None, None,
-    #         None, None, 1, 1
+    #         self.t_raster_filepaths, None, None, None, None, None, None,
+    #         None, None, None, 1, 1
     #     ])
     #     self.assertEqual(result.exit_code, 0)
 

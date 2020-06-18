@@ -3,6 +3,7 @@ import tempfile
 from os import path
 
 import dask
+import fiona
 import numpy as np
 import numpy.random as rn
 import pandas as pd
@@ -10,6 +11,7 @@ import rasterio as rio
 import simanneal
 from natcap.invest import urban_cooling_model as ucm
 from rasterio import transform
+from shapely import geometry
 from sklearn import metrics
 
 from . import settings
@@ -51,15 +53,15 @@ def _inverted_r2_score(*args, **kwargs):
 
 class UCMWrapper:
     def __init__(self, lulc_raster_filepath, biophysical_table_filepath,
-                 aoi_vector_filepath, cc_method, ref_et_raster_filepaths,
-                 t_refs=None, uhi_maxs=None, t_raster_filepaths=None,
+                 cc_method, ref_et_raster_filepaths, t_refs=None,
+                 uhi_maxs=None, t_raster_filepaths=None,
                  station_t_filepath=None, station_locations_filepath=None,
                  workspace_dir=None, extra_ucm_args=None, num_workers=None):
         # model parameters
         self.base_args = {
             'lulc_raster_path': lulc_raster_filepath,
             'biophysical_table_path': biophysical_table_filepath,
-            'aoi_vector_path': aoi_vector_filepath,
+            # 'aoi_vector_path': aoi_vector_filepath,
             'cc_method': cc_method,
         }
         # if model_params is None:
@@ -78,6 +80,28 @@ class UCMWrapper:
             # TODO: log to warn that we are using a temporary directory
         # self.workspace_dir = workspace_dir
         self.base_args.update(workspace_dir=workspace_dir)
+
+        # create a dummy geojson with the bounding box extent for the area of
+        # interest - this is completely ignored during the calibration
+        aoi_vector_filepath = path.join(self.base_args['workspace_dir'],
+                                        'dummy_aoi.geojson')
+        with rio.open(lulc_raster_filepath) as src:
+            # geom = geometry.box(*src.bounds)
+            with fiona.open(
+                    aoi_vector_filepath, 'w', driver='GeoJSON', crs=src.crs,
+                    schema={
+                        'geometry': 'Polygon',
+                        'properties': {
+                            'id': 'int'
+                        }
+                    }) as c:
+                c.write({
+                    'geometry': geometry.mapping(geometry.box(*src.bounds)),
+                    'properties': {
+                        'id': 1
+                    },
+                })
+        self.base_args.update(aoi_vector_path=aoi_vector_filepath)
 
         # evapotranspiration rasters for each date
         if isinstance(ref_et_raster_filepaths, str):
@@ -194,8 +218,8 @@ class UCMWrapper:
             return src.read(1)
 
     def _predict_t_stations(self, i, model_args=None):
-        return self.predict_t_arr(
-            i, model_args)[self.station_rows, self.station_cols]
+        return self.predict_t_arr(i, model_args)[self.station_rows,
+                                                 self.station_cols]
 
     def predict_t(self, model_args=None):
         # we could also iterate over `self.t_refs` or `self.uhi_maxs`
@@ -218,8 +242,8 @@ class UCMWrapper:
 
 class UCMCalibrator(simanneal.Annealer):
     def __init__(self, lulc_raster_filepath, biophysical_table_filepath,
-                 aoi_vector_filepath, cc_method, ref_et_raster_filepaths,
-                 t_refs=None, uhi_maxs=None, t_raster_filepaths=None,
+                 cc_method, ref_et_raster_filepaths, t_refs=None,
+                 uhi_maxs=None, t_raster_filepaths=None,
                  station_t_filepath=None, station_locations_filepath=None,
                  workspace_dir=None, initial_solution=None,
                  extra_ucm_args=None, metric=None, stepsize=None,
@@ -231,10 +255,6 @@ class UCMCalibrator(simanneal.Annealer):
             Path to the raster of land use/land cover (LULC) file
         biophysical_table_filepath : str
             Path to the biophysical table CSV file
-        aoi_vector_filepath : str
-            Path to a vector delineating the areas of interest (required to
-            launch the urban cooling model, but it does not affect the
-            calibration)
         cc_method : str
             Cooling capacity calculation method. Can be either 'factors' or
             'intensity'
@@ -309,9 +329,8 @@ class UCMCalibrator(simanneal.Annealer):
         """
         # init the model wrapper
         self.ucm_wrapper = UCMWrapper(
-            lulc_raster_filepath, biophysical_table_filepath,
-            aoi_vector_filepath, cc_method, ref_et_raster_filepaths,
-            t_refs=t_refs, uhi_maxs=uhi_maxs,
+            lulc_raster_filepath, biophysical_table_filepath, cc_method,
+            ref_et_raster_filepaths, t_refs=t_refs, uhi_maxs=uhi_maxs,
             t_raster_filepaths=t_raster_filepaths,
             station_t_filepath=station_t_filepath,
             station_locations_filepath=station_locations_filepath,

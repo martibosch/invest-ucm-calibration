@@ -31,7 +31,7 @@ We can calibrate the model to best-fit the temperature map of `T0.tif` as in:
 
 .. code-block:: bash
 
-    $ invest-ucm-calibration lulc.tif biophysical-table.csv aoi-vector.shp factors \
+    $ invest-ucm-calibration lulc.tif biophysical-table.csv factors \
                 --ref-et-raster-filepaths ref_et0.tif --t-raster-filepaths T0.tif \
                 --num-steps 10 --num-update-logs 10 \
                 --dst-filepath calibrated-params.json
@@ -46,7 +46,7 @@ We can calibrate the model to best-fit the station measurements of `station-t-on
 
 .. code-block:: bash
 
-    $ invest-ucm-calibration lulc.tif biophysical-table.csv aoi-vector.shp factors \
+    $ invest-ucm-calibration lulc.tif biophysical-table.csv factors \
                 --ref-et-raster-filepaths ref_et0.tif \
                 --station-t-filepath station-t-one-day.csv \
                 --station-locations station-locations.csv --num-steps 10 \
@@ -62,7 +62,7 @@ Regardless of whether we are calibrating with a temperare map or station measure
 
 .. code-block:: bash
 
-    $ invest-ucm-calibration lulc.tif biophysical-table.csv aoi-vector.shp factors \
+    $ invest-ucm-calibration lulc.tif biophysical-table.csv factors \
                 --ref-et-raster-filepaths ref_et0.tif ref_et1.tif \
                 --t-raster-filepaths T0.tif T1.tif --num-steps 10 \
                 --num-update-logs 10 --dst-filepath calibrated-params.json
@@ -71,7 +71,7 @@ Similarly, if we have the station measurements for the two days of `ref_et0.tif`
 
 .. code-block:: bash
                 
-    $ invest-ucm-calibration lulc.tif biophysical-table.csv aoi-vector.shp factors \
+    $ invest-ucm-calibration lulc.tif biophysical-table.csv factors \
                 --ref-et-raster-filepaths ref_et0.tif ref_et1.tif \
                 --station-t-filepath station-t.csv \
                 --station-locations station-locations.csv --num-steps 10 \
@@ -85,7 +85,7 @@ By default, the reference temperature and UHI magnitude (parameters of the urban
 
 .. code-block:: bash
 
-    $ invest-ucm-calibration lulc.tif biophysical-table.csv aoi-vector.shp factors \
+    $ invest-ucm-calibration lulc.tif biophysical-table.csv factors \
                 --ref-et-raster-filepaths ref_et0.tif ref_et1.tif --t-refs 22 20 \
                 --uhi-maxs 5 6 --t-raster-filepaths T0.tif T1.tif --num-steps 10 \
                 --num-update-logs 10 --dst-filepath calibrated-params.json

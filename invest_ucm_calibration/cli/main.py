@@ -69,7 +69,6 @@ def _dict_from_kws(kws):
 @click.command()
 @click.argument('lulc_raster_filepath', type=click.Path(exists=True))
 @click.argument('biophysical_table_filepath', type=click.Path(exists=True))
-@click.argument('aoi_vector_filepath', type=click.Path(exists=True))
 @click.argument('cc_method')
 @click.option(
     '--ref-et-raster-filepaths', cls=OptionEatAll, required=True,
@@ -154,11 +153,11 @@ def _dict_from_kws(kws):
     '--dst-filepath', type=click.Path(), required=True,
     help='Path to dump the calibrated parameters. If not provided, no file '
     'will be created (nonetheless, the calibrated parameters will be logged)')
-def cli(lulc_raster_filepath, biophysical_table_filepath, aoi_vector_filepath,
-        cc_method, ref_et_raster_filepaths, t_refs, uhi_maxs,
-        t_raster_filepaths, station_t_filepath, station_locations_filepath,
-        workspace_dir, initial_solution, extra_ucm_args, metric, stepsize,
-        num_workers, num_steps, num_update_logs, dst_filepath):
+def cli(lulc_raster_filepath, biophysical_table_filepath, cc_method,
+        ref_et_raster_filepaths, t_refs, uhi_maxs, t_raster_filepaths,
+        station_t_filepath, station_locations_filepath, workspace_dir,
+        initial_solution, extra_ucm_args, metric, stepsize, num_workers,
+        num_steps, num_update_logs, dst_filepath):
     """
     Calibrate the InVEST urban cooling model
 
@@ -168,9 +167,6 @@ def cli(lulc_raster_filepath, biophysical_table_filepath, aoi_vector_filepath,
         Path to the raster of land use/land cover (LULC) file
     biophysical_table_filepath : str
         Path to the biophysical table CSV file
-    aoi_vector_filepath : str
-        Path to a vector delineating the areas of interest (required to launch
-        the urban cooling model, but it does not affect the calibration)
     cc_method : str
         Cooling capacity calculation method. Can be either 'factors' or
         'intensity'
@@ -197,8 +193,8 @@ def cli(lulc_raster_filepath, biophysical_table_filepath, aoi_vector_filepath,
             pass
 
     ucm_calibrator = iuc.UCMCalibrator(
-        lulc_raster_filepath, biophysical_table_filepath, aoi_vector_filepath,
-        cc_method, ref_et_raster_filepaths, t_refs=t_refs, uhi_maxs=uhi_maxs,
+        lulc_raster_filepath, biophysical_table_filepath, cc_method,
+        ref_et_raster_filepaths, t_refs=t_refs, uhi_maxs=uhi_maxs,
         t_raster_filepaths=t_raster_filepaths,
         station_t_filepath=station_t_filepath,
         station_locations_filepath=station_locations_filepath,

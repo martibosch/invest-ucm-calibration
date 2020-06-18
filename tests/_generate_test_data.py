@@ -2,14 +2,12 @@ import os
 import string
 from os import path
 
-import fiona
 import numpy as np
 import osr
 import pandas as pd
 import rasterio as rio
 from numpy import random as rn
 from rasterio import transform
-from shapely import geometry
 
 
 def dump_rasters(raster_filepaths, low, high, nodata, data_mask, dtype, meta):
@@ -51,7 +49,7 @@ lulc_dtype = np.uint8
 
 biophysical_table_filepath = path.join(tests_data_dir, 'biophysical-table.csv')
 
-aoi_vector_filepath = path.join(tests_data_dir, 'aoi-vector.shp')
+# aoi_vector_filepath = path.join(tests_data_dir, 'aoi-vector.shp')
 
 ref_et_raster_filepaths = [
     path.join(tests_data_dir, f'ref_et{i}.tif') for i in range(num_dates)
@@ -88,25 +86,25 @@ for column in 'kc', 'albedo', 'shade':
 biophysical_df['green_area'] = rn.choice([0, 1], num_lulc_classes)
 biophysical_df.to_csv(biophysical_table_filepath)
 
-# dump an aoi vector shapefile with a single geometry (bounding box)
-# based on Mike T answer in stackoverflow https://bit.ly/3dp7Ihb
-# Define a polygon feature geometry with one attribute
-schema = {
-    'geometry': 'Polygon',
-    'properties': {
-        'id': 'int'
-    },
-}
-with fiona.open(aoi_vector_filepath, mode='w', driver='ESRI Shapefile',
-                schema=schema, crs=meta['crs']) as dst:
-    ## If there are multiple geometries, put the "for" loop here
-    dst.write({
-        'geometry':
-        geometry.mapping(geometry.box(west, south, east, north)),
-        'properties': {
-            'id': 123
-        },
-    })
+# # dump an aoi vector shapefile with a single geometry (bounding box)
+# # based on Mike T answer in stackoverflow https://bit.ly/3dp7Ihb
+# # Define a polygon feature geometry with one attribute
+# schema = {
+#     'geometry': 'Polygon',
+#     'properties': {
+#         'id': 'int'
+#     },
+# }
+# with fiona.open(aoi_vector_filepath, mode='w', driver='ESRI Shapefile',
+#                 schema=schema, crs=meta['crs']) as dst:
+#     ## If there are multiple geometries, put the "for" loop here
+#     dst.write({
+#         'geometry':
+#         geometry.mapping(geometry.box(west, south, east, north)),
+#         'properties': {
+#             'id': 123
+#         },
+#     })
 
 # dump a randomly-generated ref et raster
 dump_rasters(ref_et_raster_filepaths, ref_et_low, ref_et_high, ref_et_nodata,
