@@ -36,7 +36,7 @@ def _preprocess_t_rasters(t_raster_filepaths):
             t_arr = src.read(1)
             # use `np.nan` for nodata values to ensure that we get the right
             # min/max values with `np.nanmin`/`np.nanmax`
-            t_arr = np.where(t_arr != src.nodata, t_arr, np.nan)
+            t_arr = np.where(src.dataset_mask(), t_arr, np.nan)
             obs_arrs.append(t_arr)
             t_min = np.nanmin(t_arr)
             t_refs.append(t_min)
