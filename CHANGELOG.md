@@ -1,5 +1,12 @@
 # Change log
 
+## 0.2.0 (18/06/2020)
+
+* set `natcap.invest` version requirement as `>=3.8.0`, restrict pygeoprocessing to `<2.0`
+* alignment of the temperature rasters if needed
+* using `src.dataset_mask()` method instead of `arr != src.nodata`
+* dumped `aoi_vector_filepath` argument, automatically generating a dummy one instead (since it is not used in the calibration)
+
 ## 0.1.1 (08/05/2020)
 
 * fix automatic defaults for `num_steps` and `num_update_logs`
