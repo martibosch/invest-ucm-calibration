@@ -23,6 +23,10 @@ class TestIUC(unittest.TestCase):
         # calibrate with temperature map
         self.t_raster_filepaths = glob.glob(path.join(self.data_dir, 'T*.tif'))
 
+        # calibrate it with an unaligned temperature map
+        self.unaligned_t_raster_filepaths = glob.glob(
+            path.join(self.data_dir, '_T*.tif'))
+
         # calibrate with station measurements
         self.station_t_filepath = path.join(self.data_dir, 'station-t.csv')
         self.station_locations_filepath = path.join(self.data_dir,
@@ -73,6 +77,12 @@ class TestIUC(unittest.TestCase):
             self.lulc_raster_filepath, self.biophysical_table_filepath,
             self.cc_method, ref_et_raster_filepath, t_refs=t_refs,
             uhi_maxs=uhi_maxs, t_raster_filepaths=t_raster_filepath,
+            num_steps=self.num_steps, num_update_logs=self.num_update_logs)
+        # unaligned temperature map (no t_refs/no uhi_maxs)
+        iuc.UCMCalibrator(
+            self.lulc_raster_filepath, self.biophysical_table_filepath,
+            self.cc_method, ref_et_raster_filepath,
+            t_raster_filepaths=self.unaligned_t_raster_filepaths[0],
             num_steps=self.num_steps, num_update_logs=self.num_update_logs)
 
         # calibrate with measurements
@@ -184,6 +194,10 @@ class TestCLI(unittest.TestCase):
         # calibrate with temperature map
         self.t_raster_filepaths = glob.glob(path.join(self.data_dir, 'T*.tif'))
 
+        # calibrate it with an unaligned temperature map
+        self.unaligned_t_raster_filepaths = glob.glob(
+            path.join(self.data_dir, '_T*.tif'))
+
         # calibrate with station measurements
         self.station_t_filepath = path.join(self.data_dir, 'station-t.csv')
         self.station_locations_filepath = path.join(self.data_dir,
@@ -209,6 +223,7 @@ class TestCLI(unittest.TestCase):
     def test_one_day(self):
         ref_et_raster_filepath = self.ref_et_raster_filepaths[0]
         t_raster_filepath = self.t_raster_filepaths[0]
+        unaligned_t_raster_filepath = self.unaligned_t_raster_filepaths[0]
         t_refs = 20
         uhi_maxs = 10
 
@@ -222,6 +237,28 @@ class TestCLI(unittest.TestCase):
             path.join(self.workspace_dir, 'foo.json')
         ])
         self.assertEqual(result.exit_code, 0)
+
+        # calibrate with an unaligned map
+        result = self.runner.invoke(main.cli, [
+            self.lulc_raster_filepath, self.biophysical_table_filepath,
+            self.cc_method, '--ref-et-raster-filepaths',
+            ref_et_raster_filepath, '--t-refs', t_refs, '--uhi-maxs', uhi_maxs,
+            '--t-raster-filepaths', unaligned_t_raster_filepath, '--num-steps',
+            1, '--num-update-logs', 1, '--dst-filepath',
+            path.join(self.workspace_dir, 'foo.json')
+        ])
+        self.assertEqual(result.exit_code, 0)
+        # test that unaligned rasters need to be aligned
+        result = self.runner.invoke(main.cli, [
+            self.lulc_raster_filepath, self.biophysical_table_filepath,
+            self.cc_method, '--ref-et-raster-filepaths',
+            ref_et_raster_filepath, '--t-refs', t_refs, '--uhi-maxs', uhi_maxs,
+            '--t-raster-filepaths', unaligned_t_raster_filepath,
+            '--no-align-rasters', '--num-steps', 1, '--num-update-logs', 1,
+            '--dst-filepath',
+            path.join(self.workspace_dir, 'foo.json')
+        ])
+        self.assertEqual(result.exit_code, 1)
 
         # calibrate with measurements
         result = self.runner.invoke(main.cli, [

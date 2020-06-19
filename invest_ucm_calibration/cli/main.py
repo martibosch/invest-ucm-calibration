@@ -104,6 +104,13 @@ def _dict_from_kws(kws):
     'locations of each station (in the same CRS as the other rasters). '
     'Required if calibrating against station measurements.')
 @click.option(
+    '--align-rasters/--no-align-rasters', default=True,
+    help='Whether the rasters should be aligned before passing them as '
+    'arguments of the InVEST urban cooling model. Since the model already '
+    'aligns the LULC and reference evapotranspiration rasters, this argument '
+    'is only useful to align the temperature rasters, and is therefore ignored'
+    ' if calibrating against station measurements.')
+@click.option(
     '--workspace-dir', type=click.Path(exists=True),
     help='Path to the folder where the model outputs will be written. If not '
     'provided, a temporary directory will be used.')
@@ -155,9 +162,9 @@ def _dict_from_kws(kws):
     'will be created (nonetheless, the calibrated parameters will be logged)')
 def cli(lulc_raster_filepath, biophysical_table_filepath, cc_method,
         ref_et_raster_filepaths, t_refs, uhi_maxs, t_raster_filepaths,
-        station_t_filepath, station_locations_filepath, workspace_dir,
-        initial_solution, extra_ucm_args, metric, stepsize, num_workers,
-        num_steps, num_update_logs, dst_filepath):
+        station_t_filepath, station_locations_filepath, align_rasters,
+        workspace_dir, initial_solution, extra_ucm_args, metric, stepsize,
+        num_workers, num_steps, num_update_logs, dst_filepath):
     """
     Calibrate the InVEST urban cooling model
 
@@ -198,10 +205,10 @@ def cli(lulc_raster_filepath, biophysical_table_filepath, cc_method,
         t_raster_filepaths=t_raster_filepaths,
         station_t_filepath=station_t_filepath,
         station_locations_filepath=station_locations_filepath,
-        workspace_dir=workspace_dir, initial_solution=initial_solution,
-        extra_ucm_args=extra_ucm_args, metric=metric, stepsize=stepsize,
-        num_workers=num_workers, num_steps=num_steps,
-        num_update_logs=num_update_logs)
+        align_rasters=align_rasters, workspace_dir=workspace_dir,
+        initial_solution=initial_solution, extra_ucm_args=extra_ucm_args,
+        metric=metric, stepsize=stepsize, num_workers=num_workers,
+        num_steps=num_steps, num_update_logs=num_update_logs)
     solution, cost = ucm_calibrator.anneal()
     logger.info("Best solution %s with cost %s", str(solution), cost)
 

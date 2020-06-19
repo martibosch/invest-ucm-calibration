@@ -7,6 +7,7 @@ import fiona
 import numpy as np
 import numpy.random as rn
 import pandas as pd
+import pygeoprocessing
 import rasterio as rio
 import simanneal
 from natcap.invest import urban_cooling_model as ucm
@@ -25,6 +26,36 @@ def _is_sequence(arg):
     # return (not hasattr(arg, "strip") and hasattr(arg, "__getitem__")
     #         or hasattr(arg, "__iter__"))
     return hasattr(arg, '__getitem__') or hasattr(arg, '__iter__')
+
+
+def _align_rasters(lulc_raster_filepath, ref_et_raster_filepaths,
+                   t_raster_filepaths, dst_lulc_raster_filepath,
+                   dst_ref_et_raster_filepaths, dst_t_raster_filepaths):
+    with rio.open(lulc_raster_filepath) as src:
+        pygeoprocessing.align_and_resize_raster_stack(
+            [lulc_raster_filepath] + ref_et_raster_filepaths +
+            t_raster_filepaths, [dst_lulc_raster_filepath] +
+            dst_ref_et_raster_filepaths + dst_t_raster_filepaths,
+            ['near'] + ['bilinear'] *
+            (len(ref_et_raster_filepaths) + len(t_raster_filepaths)), src.res,
+            'intersection')
+
+    # get the intersection mask
+    with rio.open(dst_lulc_raster_filepath) as src:
+        mask = src.dataset_mask()
+    for dst_raster_filepath in dst_ref_et_raster_filepaths + \
+            dst_t_raster_filepaths:
+        with rio.open(dst_raster_filepath) as src:
+            mask &= src.dataset_mask()
+
+    for dst_raster_filepath in [dst_lulc_raster_filepath] + \
+            dst_ref_et_raster_filepaths + dst_t_raster_filepaths:
+        with rio.open(dst_raster_filepath, 'r+') as ds:
+            ds.write(
+                np.where(mask, ds.read(1), ds.nodata).astype(ds.dtypes[0]), 1)
+
+    return (dst_lulc_raster_filepath, dst_ref_et_raster_filepaths,
+            dst_t_raster_filepaths)
 
 
 def _preprocess_t_rasters(t_raster_filepaths):
@@ -56,63 +87,51 @@ class UCMWrapper:
                  cc_method, ref_et_raster_filepaths, t_refs=None,
                  uhi_maxs=None, t_raster_filepaths=None,
                  station_t_filepath=None, station_locations_filepath=None,
-                 workspace_dir=None, extra_ucm_args=None, num_workers=None):
-        # model parameters
-        self.base_args = {
-            'lulc_raster_path': lulc_raster_filepath,
-            'biophysical_table_path': biophysical_table_filepath,
-            # 'aoi_vector_path': aoi_vector_filepath,
-            'cc_method': cc_method,
-        }
-        # if model_params is None:
-        #     model_params = DEFAULT_MODEL_PARAMS
-        # self.base_args.update(**model_params)
-        if extra_ucm_args is None:
-            extra_ucm_args = settings.DEFAULT_EXTRA_UCM_ARGS
-        if 'do_valuation' not in extra_ucm_args:
-            extra_ucm_args['do_valuation'] = settings.DEFAULT_EXTRA_UCM_ARGS[
-                'do_valuation']
-        self.base_args.update(**extra_ucm_args)
+                 align_rasters=True, workspace_dir=None, extra_ucm_args=None,
+                 num_workers=None):
 
         if workspace_dir is None:
             # TODO: how do we ensure that this is removed?
             workspace_dir = tempfile.mkdtemp()
             # TODO: log to warn that we are using a temporary directory
         # self.workspace_dir = workspace_dir
-        self.base_args.update(workspace_dir=workspace_dir)
-
-        # create a dummy geojson with the bounding box extent for the area of
-        # interest - this is completely ignored during the calibration
-        aoi_vector_filepath = path.join(self.base_args['workspace_dir'],
-                                        'dummy_aoi.geojson')
-        with rio.open(lulc_raster_filepath) as src:
-            # geom = geometry.box(*src.bounds)
-            with fiona.open(
-                    aoi_vector_filepath, 'w', driver='GeoJSON', crs=src.crs,
-                    schema={
-                        'geometry': 'Polygon',
-                        'properties': {
-                            'id': 'int'
-                        }
-                    }) as c:
-                c.write({
-                    'geometry': geometry.mapping(geometry.box(*src.bounds)),
-                    'properties': {
-                        'id': 1
-                    },
-                })
-        self.base_args.update(aoi_vector_path=aoi_vector_filepath)
+        # self.base_args.update()
 
         # evapotranspiration rasters for each date
         if isinstance(ref_et_raster_filepaths, str):
             ref_et_raster_filepaths = [ref_et_raster_filepaths]
-        self.ref_et_raster_filepaths = ref_et_raster_filepaths
 
         # calibration approaches
         if t_raster_filepaths is not None:
             # calibrate against a map
             if isinstance(t_raster_filepaths, str):
                 t_raster_filepaths = [t_raster_filepaths]
+
+            if align_rasters:
+                # a list is needed for the `_align_rasters` method
+                if isinstance(ref_et_raster_filepaths, tuple):
+                    ref_et_raster_filepaths = list(ref_et_raster_filepaths)
+                if isinstance(t_raster_filepaths, tuple):
+                    t_raster_filepaths = list(t_raster_filepaths)
+                # align the rasters to the LULC raster and dump them to new
+                # paths in the workspace directory
+                dst_lulc_raster_filepath = path.join(workspace_dir, 'lulc.tif')
+                dst_ref_et_raster_filepaths = [
+                    path.join(workspace_dir, f'ref-et_{i}.tif')
+                    for i in range(len(t_raster_filepaths))
+                ]
+                dst_t_raster_filepaths = [
+                    path.join(workspace_dir, f't_{i}.tif')
+                    for i in range(len(t_raster_filepaths))
+                ]
+                # the call below returns the same `dst_lulc_raster_filepath`
+                # `dst_ref_et_raster_filepaths` and `dst_t_raster_filepaths`
+                # passed as args
+                lulc_raster_filepath, ref_et_raster_filepaths, \
+                    t_raster_filepaths = _align_rasters(
+                        lulc_raster_filepath, ref_et_raster_filepaths,
+                        t_raster_filepaths, dst_lulc_raster_filepath,
+                        dst_ref_et_raster_filepaths, dst_t_raster_filepaths)
 
             # Tref and UHImax
             if t_refs is None:
@@ -173,6 +192,26 @@ class UCMWrapper:
             # method to predict the temperature values
             self._predict_t = self._predict_t_stations
 
+        # create a dummy geojson with the bounding box extent for the area of
+        # interest - this is completely ignored during the calibration
+        aoi_vector_filepath = path.join(workspace_dir, 'dummy_aoi.geojson')
+        with rio.open(lulc_raster_filepath) as src:
+            # geom = geometry.box(*src.bounds)
+            with fiona.open(
+                    aoi_vector_filepath, 'w', driver='GeoJSON', crs=src.crs,
+                    schema={
+                        'geometry': 'Polygon',
+                        'properties': {
+                            'id': 'int'
+                        }
+                    }) as c:
+                c.write({
+                    'geometry': geometry.mapping(geometry.box(*src.bounds)),
+                    'properties': {
+                        'id': 1
+                    },
+                })
+
         # store reference temperatures and UHI magnitudes as class attributes
         if not _is_sequence(t_refs):
             t_refs = [t_refs]
@@ -185,6 +224,27 @@ class UCMWrapper:
         self.obs_arr = obs_arr.flatten()
         self.obs_mask = ~np.isnan(self.obs_arr)
         self.obs_arr = self.obs_arr[self.obs_mask]
+
+        # model parameters: prepare the dict here so that all the paths/
+        # parameters have been properly set above
+        self.base_args = {
+            'lulc_raster_path': lulc_raster_filepath,
+            'biophysical_table_path': biophysical_table_filepath,
+            'aoi_vector_path': aoi_vector_filepath,
+            'cc_method': cc_method,
+            'workspace_dir': workspace_dir,
+        }
+        # if model_params is None:
+        #     model_params = DEFAULT_MODEL_PARAMS
+        # self.base_args.update(**model_params)
+        if extra_ucm_args is None:
+            extra_ucm_args = settings.DEFAULT_EXTRA_UCM_ARGS
+        if 'do_valuation' not in extra_ucm_args:
+            extra_ucm_args['do_valuation'] = settings.DEFAULT_EXTRA_UCM_ARGS[
+                'do_valuation']
+        self.base_args.update(**extra_ucm_args)
+        # also store the paths to the evapotranspiration rasters
+        self.ref_et_raster_filepaths = ref_et_raster_filepaths
 
         # number of workers to perform each calibration iteration at scale
         if num_workers is None:
@@ -245,7 +305,7 @@ class UCMCalibrator(simanneal.Annealer):
                  cc_method, ref_et_raster_filepaths, t_refs=None,
                  uhi_maxs=None, t_raster_filepaths=None,
                  station_t_filepath=None, station_locations_filepath=None,
-                 workspace_dir=None, initial_solution=None,
+                 align_rasters=True, workspace_dir=None, initial_solution=None,
                  extra_ucm_args=None, metric=None, stepsize=None,
                  num_workers=None, num_steps=None, num_update_logs=None):
         """
@@ -287,6 +347,12 @@ class UCMCalibrator(simanneal.Annealer):
             that correspod to the locations of each station (in the same CRS
             as the other rasters). Required if calibrating against station
             measurements.
+        align_rasters : bool, default True
+            Whether the rasters should be aligned before passing them as
+            arguments of the InVEST urban cooling model. Since the model
+            already aligns the LULC and reference evapotranspiration rasters,
+            this argument is only useful to align the temperature rasters, and
+            is therefore ignored if calibrating against station measurements.
         workspace_dir : str, optional
             Path to the folder where the model outputs will be written. If not
             provided, a temporary directory will be used.
@@ -334,8 +400,8 @@ class UCMCalibrator(simanneal.Annealer):
             t_raster_filepaths=t_raster_filepaths,
             station_t_filepath=station_t_filepath,
             station_locations_filepath=station_locations_filepath,
-            workspace_dir=workspace_dir, extra_ucm_args=extra_ucm_args,
-            num_workers=num_workers)
+            align_rasters=align_rasters, workspace_dir=workspace_dir,
+            extra_ucm_args=extra_ucm_args, num_workers=num_workers)
 
         # metric
         if metric is None:
@@ -388,7 +454,6 @@ class UCMCalibrator(simanneal.Annealer):
                           cc_weight_shade=self.state[2],
                           cc_weight_albedo=self.state[3],
                           cc_weight_eti=self.state[4])
-
         pred_arr = self.ucm_wrapper.predict_t(model_args=model_args).flatten()
 
         return self.compute_metric(self.ucm_wrapper.obs_arr,

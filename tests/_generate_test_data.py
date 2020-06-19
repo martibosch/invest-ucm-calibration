@@ -62,6 +62,9 @@ ref_et_dtype = np.float32
 t_raster_filepaths = [
     path.join(tests_data_dir, f'T{i}.tif') for i in range(num_dates)
 ]
+unaligned_t_raster_filepaths = [
+    path.join(tests_data_dir, f'_T{i}.tif') for i in range(num_dates)
+]
 t_low = 20
 t_high = 30
 t_nodata = -300
@@ -113,6 +116,13 @@ dump_rasters(ref_et_raster_filepaths, ref_et_low, ref_et_high, ref_et_nodata,
 # dump a randomly-generated t raster
 dump_rasters(t_raster_filepaths, t_low, t_high, t_nodata, data_mask, t_dtype,
              meta)
+
+# dump a randomly-generated unaligned t raster
+unaligned_meta = meta.copy()
+unaligned_shape = height - 1, width - 1
+unaligned_meta.update(width=width - 1, height=height - 1)
+dump_rasters(unaligned_t_raster_filepaths, t_low, t_high, t_nodata,
+             data_mask[1:, 1:], t_dtype, unaligned_meta)
 
 # dump a randomly-generated station location data frame
 station_location_df = pd.DataFrame(index=station_labels)
