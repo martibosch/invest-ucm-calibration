@@ -5,7 +5,7 @@ from os import environ, path
 
 from setuptools import find_packages, setup
 
-__version__ = '0.1.1'
+__version__ = '0.2.0'
 
 _description = 'Automated calibration of the InVEST urban cooling model with'\
     ' simulated annealing'
