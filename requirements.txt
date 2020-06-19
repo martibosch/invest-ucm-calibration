@@ -1,8 +1,9 @@
 click
 dask[delayed]
 fiona
-natcap.invest==3.8.0
+natcap.invest>=3.8.0
 numpy
+pygeoprocessing<2.0
 rasterio
 scikit-learn
 shapely
