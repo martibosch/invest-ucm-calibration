@@ -255,26 +255,26 @@ class UCMWrapper:
         self.num_workers = num_workers
 
     def predict_t_arr(self, i, model_args=None):
-        if model_args is None:
-            model_args = self.base_args
+        args = self.base_args.copy()
+        if model_args is not None:
+            args.update(model_args)
         # TODO: support unaligned rasters?
         # if read_kws is None:
         #     read_kws = {}
 
         # note that this workspace_dir corresponds to this date only
         workspace_dir = path.join(self.base_args['workspace_dir'], str(i))
-        date_args = model_args.copy()
-        date_args.update(
+        args.update(
             workspace_dir=workspace_dir,
             ref_eto_raster_path=self.ref_et_raster_filepaths[i],
             # t_ref=Tref_da.sel(time=date).item(),
             # uhi_max=uhi_max_da.sel(time=date).item()
             t_ref=self.t_refs[i],
             uhi_max=self.uhi_maxs[i])
-        ucm.execute(date_args)
+        ucm.execute(args)
 
         with rio.open(
-                path.join(date_args['workspace_dir'], 'intermediate',
+                path.join(args['workspace_dir'], 'intermediate',
                           'T_air.tif')) as src:
             # return src.read(1, **read_kws)
             return src.read(1)
