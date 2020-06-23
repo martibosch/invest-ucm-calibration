@@ -12,6 +12,7 @@ import rasterio as rio
 import simanneal
 from natcap.invest import urban_cooling_model as ucm
 from rasterio import transform
+from scipy import stats
 from shapely import geometry
 from sklearn import metrics
 
@@ -76,10 +77,11 @@ def _preprocess_t_rasters(t_raster_filepaths):
     return np.concatenate(obs_arrs), t_refs, uhi_maxs
 
 
-def _inverted_r2_score(*args, **kwargs):
+def _inverted_r2_score(obs, pred):
     # since we need to maximize (instead of minimize) the r2, the
     # simulated annealing will actually minimize 1 - R^2
-    return 1 - metrics.r2_score(*args, **kwargs)
+    slope, intercept, r_value, p_value, std_err = stats.linregress(obs, pred)
+    return 1 - r_value * r_value
 
 
 class UCMWrapper:
