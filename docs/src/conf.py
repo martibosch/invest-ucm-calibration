@@ -67,7 +67,7 @@ author = "Martí Bosch"
 # the built documents.
 #
 # The short X.Y version.
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 version = __version__
 # The full version, including alpha/beta/rc tags.
 release = __version__

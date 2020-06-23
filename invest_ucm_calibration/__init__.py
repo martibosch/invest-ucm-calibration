@@ -18,7 +18,7 @@ from sklearn import metrics
 
 from . import settings
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 
 # utils
