@@ -307,7 +307,8 @@ class UCMCalibrator(simanneal.Annealer):
                  station_t_filepath=None, station_locations_filepath=None,
                  align_rasters=True, workspace_dir=None, initial_solution=None,
                  extra_ucm_args=None, metric=None, stepsize=None,
-                 num_workers=None, num_steps=None, num_update_logs=None):
+                 exclude_zero_kernel_dist=True, num_workers=None,
+                 num_steps=None, num_update_logs=None):
         """
         Parameters
         ----------
@@ -379,6 +380,11 @@ class UCMCalibrator(simanneal.Annealer):
             500 at a given iteration, the solution for the next iteration will
             be uniformly sampled from the [350, 650] range. If not provided, it
             will be taken from `settings.DEFAULT_STEPSIZE`.
+        exclude_zero_kernel_dist : bool, default True
+            Whether the calibration should consider parameters that lead to
+            decay functions with a kernel distance of zero pixels (i.e.,
+            `t_air_average_radius` or `green_area_cooling_distance` lower than
+            half the LULC pixel resolution).
         num_workers : int, optional
             Number of workers so that the simulations of each iteration can be
             executed at scale. Only useful if calibrating for multiple dates.
@@ -426,6 +432,19 @@ class UCMCalibrator(simanneal.Annealer):
         # init the parent `Annealer` instance with the initial solution
         super(UCMCalibrator, self).__init__(initial_solution)
 
+        # whether we ensure that kernel decay distances are of at least one
+        # pixel
+        if exclude_zero_kernel_dist:
+            with rio.open(
+                    self.ucm_wrapper.base_args['lulc_raster_path']) as src:
+                # the chained `np.min` and `np.abs` corresponds to the way
+                # that the urban cooling model sets the `cell_size` variable
+                # which is in turn used in the denominator when obtaining
+                # kernel distances
+                self.min_kernel_dist = 0.5 * np.min(np.abs(
+                    src.res)) + settings.MIN_KERNEL_DIST_EPS
+        self.exclude_zero_kernel_dist = exclude_zero_kernel_dist
+
         # nicer parameters for the urban cooling model solution space
         if num_steps is None:
             num_steps = settings.DEFAULT_NUM_STEPS
@@ -439,6 +458,14 @@ class UCMCalibrator(simanneal.Annealer):
         for param in self.state:
             state_neighbour.append(
                 param * (1 + rn.uniform(-self.stepsize, self.stepsize)))
+        # ensure that kernel decay distances are of at least one pixel
+        if self.exclude_zero_kernel_dist:
+            for k in range(2):
+                if state_neighbour[k] < self.min_kernel_dist:
+                    state_neighbour[k] = self.min_kernel_dist
+                # alternatively:
+                # state_neighbour[k] = np.max(state_neighbour[k],
+                #                             self.min_kernel_dist)
         # rescale so that the three weights add up to one
         weight_sum = sum(state_neighbour[2:])
         for k in range(2, 5):

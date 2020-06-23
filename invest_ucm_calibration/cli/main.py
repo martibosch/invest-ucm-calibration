@@ -142,6 +142,12 @@ def _dict_from_kws(kws):
     '650] range. If not provided, the value set in `settings.DEFAULT_STEPSIZE`'
     ' will be used.')
 @click.option(
+    '--exclude-zero-kernel-dist/--no-exclude-zero-kernel-dist', default=True,
+    help='Whether the calibration should consider parameters that lead to '
+    'decay functions with a kernel distance of zero pixels (i.e., '
+    '`t_air_average_radius` or `green_area_cooling_distance` lower than half '
+    'the LULC pixel resolution).')
+@click.option(
     '--num-workers', type=int,
     help='Number of workers so that the simulations of each iteration can be '
     'executed at scale. Only useful if calibrating for multiple dates. If not '
@@ -164,7 +170,8 @@ def cli(lulc_raster_filepath, biophysical_table_filepath, cc_method,
         ref_et_raster_filepaths, t_refs, uhi_maxs, t_raster_filepaths,
         station_t_filepath, station_locations_filepath, align_rasters,
         workspace_dir, initial_solution, extra_ucm_args, metric, stepsize,
-        num_workers, num_steps, num_update_logs, dst_filepath):
+        exclude_zero_kernel_dist, num_workers, num_steps, num_update_logs,
+        dst_filepath):
     """
     Calibrate the InVEST urban cooling model
 
@@ -207,8 +214,10 @@ def cli(lulc_raster_filepath, biophysical_table_filepath, cc_method,
         station_locations_filepath=station_locations_filepath,
         align_rasters=align_rasters, workspace_dir=workspace_dir,
         initial_solution=initial_solution, extra_ucm_args=extra_ucm_args,
-        metric=metric, stepsize=stepsize, num_workers=num_workers,
-        num_steps=num_steps, num_update_logs=num_update_logs)
+        metric=metric, stepsize=stepsize,
+        exclude_zero_kernel_dist=exclude_zero_kernel_dist,
+        num_workers=num_workers, num_steps=num_steps,
+        num_update_logs=num_update_logs)
     solution, cost = ucm_calibrator.anneal()
     logger.info("Best solution %s with cost %s", str(solution), cost)
 
