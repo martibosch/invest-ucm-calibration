@@ -180,6 +180,78 @@ class TestIUC(unittest.TestCase):
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps, num_update_logs=self.num_update_logs)
 
+    def test_dates(self):
+        ref_et_raster_filepath = self.ref_et_raster_filepaths[0]
+        t_raster_filepath = self.t_raster_filepaths[0]
+        date = '23-07-2020'
+
+        # test the `dates` argument
+        # if not providing `station_t_filepath` and not providing the `dates`
+        # arg, the `dates` attribute is `None`
+        self.assertIsNone(
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath, self.biophysical_table_filepath,
+                self.cc_method, ref_et_raster_filepath,
+                t_raster_filepaths=t_raster_filepath, num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs).ucm_wrapper.dates)
+        # if not providing `station_t_filepath` and providing the `dates` arg,
+        # the `dates` attribute is taken from there (although converted to a
+        # list of one element only)
+        self.assertEquals(
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath, self.biophysical_table_filepath,
+                self.cc_method, ref_et_raster_filepath,
+                t_raster_filepaths=t_raster_filepath, dates=date,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs).ucm_wrapper.dates,
+            [date])
+        # if providing `station_t_filepath`, `dates` is taken from there
+        self.assertIsNotNone(
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath, self.biophysical_table_filepath,
+                self.cc_method, ref_et_raster_filepath,
+                station_t_filepath=self.station_t_one_day_filepath,
+                station_locations_filepath=self.station_locations_filepath,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs).ucm_wrapper.dates)
+
+    def test_data_array(self):
+        t_da = iuc.UCMCalibrator(
+            self.lulc_raster_filepath, self.biophysical_table_filepath,
+            self.cc_method, self.ref_et_raster_filepaths,
+            station_t_filepath=self.station_t_filepath,
+            station_locations_filepath=self.station_locations_filepath,
+            num_steps=self.num_steps,
+            num_update_logs=self.num_update_logs).predict_t_da()
+
+        # test that the time dimension has a coordinate for each ref.
+        # evapotransp. raster filepath
+        self.assertEqual(len(t_da['time']), len(self.ref_et_raster_filepaths))
+
+    def test_data_frames(self):
+        ucm_calibrator = iuc.UCMCalibrator(
+            self.lulc_raster_filepath, self.biophysical_table_filepath,
+            self.cc_method, self.ref_et_raster_filepaths,
+            station_t_filepath=self.station_t_filepath,
+            station_locations_filepath=self.station_locations_filepath,
+            num_steps=self.num_steps, num_update_logs=self.num_update_logs)
+
+        # test that the set of unique sample dates is of the same size as the
+        # number of ref. evapotransp. raster filepath
+        sample_comparison_df = ucm_calibrator.get_sample_comparison_df()
+        self.assertEqual(len(sample_comparison_df['date'].unique()),
+                         len(self.ref_et_raster_filepaths))
+
+        # test that all the columns of the model performance data frame are
+        # numeric
+        model_perf_df = ucm_calibrator.get_model_perf_df()
+        self.assertEqual(
+            len(model_perf_df.columns),
+            len(
+                model_perf_df.select_dtypes(include=[
+                    'int16', 'int32', 'int64', 'float16', 'float32', 'float64'
+                ]).columns))
+
 
 class TestCLI(unittest.TestCase):
     def setUp(self):
@@ -207,6 +279,7 @@ class TestCLI(unittest.TestCase):
 
         # other parameters
         self.cc_method = 'factors'
+        self.date = '23-07-2020'
         self.num_steps = 2
         self.num_update_logs = 2
         self.workspace_dir = path.join(self.data_dir, 'tmp')
@@ -259,6 +332,16 @@ class TestCLI(unittest.TestCase):
             path.join(self.workspace_dir, 'foo.json')
         ])
         self.assertEqual(result.exit_code, 1)
+        # test the `dates` arg
+        result = self.runner.invoke(main.cli, [
+            self.lulc_raster_filepath, self.biophysical_table_filepath,
+            self.cc_method, '--ref-et-raster-filepaths',
+            ref_et_raster_filepath, '--t-refs', t_refs, '--uhi-maxs', uhi_maxs,
+            '--t-raster-filepaths', t_raster_filepath, '--dates', self.date,
+            '--num-steps', 1, '--num-update-logs', 1, '--dst-filepath',
+            path.join(self.workspace_dir, 'foo.json')
+        ])
+        self.assertEqual(result.exit_code, 0)
 
         # calibrate with measurements
         result = self.runner.invoke(main.cli, [
