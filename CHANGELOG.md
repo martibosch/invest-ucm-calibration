@@ -1,5 +1,21 @@
 # Change log
 
+## 0.3.0 (27/07/2020)
+ 
+* custom `dates` argument in `UCMWrapper`
+* shortcut to useful `UCMWrapper` methods in `UCMCalibrator`
+* using `_ucm_params_dict` property to get params from annealer state
+* added sample comparison and model performance methods
+* added `predict_t_da` method (works with xarray) 
+* renamed variables `model_args` -> `ucm_args`, `DEFAULT_MODEL_PARAMS` -> `DEFAULT_UCM_PARAMS`
+* default model parameters from `settings` module in `base_args` attribute of the `UCMWrapper` class
+
+## 0.2.1 (23/06/2020)
+
+* update `base_args` with `model_args` in `predict_t_arr`
+* compute R^2 with `scipy.stats` (instead of `sklearn.metrics`)
+* exclude zero kernel distance to avoid nan/infinity errors
+
 ## 0.2.0 (18/06/2020)
 
 * set `natcap.invest` version requirement as `>=3.8.0`, restrict pygeoprocessing to `<2.0`
