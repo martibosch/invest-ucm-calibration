@@ -238,7 +238,8 @@ class UCMWrapper:
         }
         # if model_params is None:
         #     model_params = DEFAULT_MODEL_PARAMS
-        # self.base_args.update(**model_params)
+        self.base_args.update(**settings.DEFAULT_MODEL_PARAMS)
+
         if extra_ucm_args is None:
             extra_ucm_args = settings.DEFAULT_EXTRA_UCM_ARGS
         if 'do_valuation' not in extra_ucm_args:
