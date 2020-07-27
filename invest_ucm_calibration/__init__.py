@@ -85,6 +85,18 @@ def _inverted_r2_score(obs, pred):
     return 1 - r_value * r_value
 
 
+METRIC_COLUMNS = ['R^2', 'MAE', 'RMSE']
+
+
+def _compute_model_perf(obs, pred):
+    return [
+        metrics.r2_score(obs, pred),
+        metrics.mean_absolute_error(obs, pred),
+        metrics.mean_squared_error(obs, pred, squared=False),
+    ]
+
+
+# classes
 class UCMWrapper:
     def __init__(self, lulc_raster_filepath, biophysical_table_filepath,
                  cc_method, ref_et_raster_filepaths, t_refs=None,
@@ -337,6 +349,64 @@ class UCMWrapper:
             }, name='T', attrs={'pyproj_srs': self.meta['crs'].to_proj4()})
         return t_da.groupby('time').apply(
             lambda x: x.where(self.data_mask, np.nan))
+
+    def get_sample_comparison_df(self, ucm_args=None):
+        tair_pred_df = pd.DataFrame(index=self.station_tair_df.columns)
+
+        T_da = self.predict_t_da(ucm_args=ucm_args)
+        for date, date_da in T_da.groupby('time'):
+            tair_pred_df[date] = date_da.values[self.station_rows,
+                                                self.station_cols]
+        tair_pred_df = tair_pred_df.transpose()
+
+        # comparison_df['err'] = comparison_df['pred'] - comparison_df['obs']
+        # comparison_df['sq_err'] = comparison_df['err']**2
+        return pd.concat([self.station_tair_df.stack(),
+                          tair_pred_df.stack()],
+                         axis=1).reset_index().rename(columns={
+                             'level_0': 'date',
+                             'level_1': 'station',
+                             0: 'obs',
+                             1: 'pred'
+                         })
+
+    def get_model_perf_df(self, ucm_args=None, num_runs=None):
+        comparison_df = self.get_sample_comparison_df(
+            ucm_args=ucm_args).dropna()
+
+        if num_runs is None:
+            num_runs = settings.DEFAULT_MODEL_PERF_NUM_RUNS
+        uniform_values = []
+        normal_values = []
+        for _ in range(num_runs):
+            for date, date_df in comparison_df.groupby('date'):
+                date_obs_ser = date_df['obs']
+                T_min = date_obs_ser.min()
+                T_max = date_obs_ser.max()
+                num_samples = len(date_obs_ser)
+                uniform_values.append(
+                    np.random.uniform(T_min, T_max, size=num_samples))
+                normal_values.append(
+                    np.random.normal(loc=date_df['obs'].mean(),
+                                     scale=date_df['obs'].std(),
+                                     size=num_samples))
+        uniform_values = np.concatenate(uniform_values)
+        normal_values = np.concatenate(normal_values)
+
+        model_perf_df = pd.DataFrame(columns=METRIC_COLUMNS)
+
+        # Uniform/normal
+        obs_values = pd.concat([comparison_df['obs'] for _ in range(num_runs)])
+        model_perf_df.loc['uniform'] = _compute_model_perf(
+            obs_values, uniform_values)
+        model_perf_df.loc['normal'] = _compute_model_perf(
+            obs_values, normal_values)
+
+        # InVEST urban cooling model
+        model_perf_df.loc['invest_ucm'] = _compute_model_perf(
+            comparison_df['obs'], comparison_df['pred'])
+
+        return model_perf_df
 
 
 class UCMCalibrator(simanneal.Annealer):
