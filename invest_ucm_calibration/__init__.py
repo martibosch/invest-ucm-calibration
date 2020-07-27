@@ -562,6 +562,16 @@ class UCMCalibrator(simanneal.Annealer):
             num_update_logs = settings.DEFAULT_NUM_UPDATE_LOGS
         self.updates = num_update_logs
 
+    # property to get the model parameters according to the calibration state
+    @property
+    def _ucm_params_dict(self):
+        return dict(t_air_average_radius=self.state[0],
+                    green_area_cooling_distance=self.state[1],
+                    cc_weight_shade=self.state[2],
+                    cc_weight_albedo=self.state[3],
+                    cc_weight_eti=self.state[4])
+
+    # methods required so that the `Annealer` class works for our purpose
     def move(self):
         state_neighbour = []
         for param in self.state:
@@ -584,12 +594,7 @@ class UCMCalibrator(simanneal.Annealer):
         self.state = state_neighbour
 
     def energy(self):
-        ucm_args = self.ucm_wrapper.base_args.copy()
-        ucm_args.update(t_air_average_radius=self.state[0],
-                        green_area_cooling_distance=self.state[1],
-                        cc_weight_shade=self.state[2],
-                        cc_weight_albedo=self.state[3],
-                        cc_weight_eti=self.state[4])
+        ucm_args = self._ucm_params_dict.copy()
         pred_arr = self.ucm_wrapper.predict_t(ucm_args=ucm_args).flatten()
 
         return self.compute_metric(self.ucm_wrapper.obs_arr,
