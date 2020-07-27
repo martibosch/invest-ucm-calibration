@@ -1,5 +1,5 @@
 # DEFAULT_INITIAL_SOLUTION = [500, 100, 0.6, 0.2, 0.2]
-DEFAULT_MODEL_PARAMS = {
+DEFAULT_UCM_PARAMS = {
     't_air_average_radius': 500,
     'green_area_cooling_distance': 100,
     'cc_weight_shade': 0.6,

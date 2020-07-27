@@ -232,7 +232,7 @@ class UCMWrapper:
         }
         # if model_params is None:
         #     model_params = DEFAULT_MODEL_PARAMS
-        self.base_args.update(**settings.DEFAULT_MODEL_PARAMS)
+        self.base_args.update(**settings.DEFAULT_UCM_PARAMS)
 
         if extra_ucm_args is None:
             extra_ucm_args = settings.DEFAULT_EXTRA_UCM_ARGS
@@ -249,10 +249,10 @@ class UCMWrapper:
                               os.cpu_count())
         self.num_workers = num_workers
 
-    def predict_t_arr(self, i, model_args=None):
+    def predict_t_arr(self, i, ucm_args=None):
         args = self.base_args.copy()
-        if model_args is not None:
-            args.update(model_args)
+        if ucm_args is not None:
+            args.update(ucm_args)
         # TODO: support unaligned rasters?
         # if read_kws is None:
         #     read_kws = {}
@@ -274,14 +274,14 @@ class UCMWrapper:
             # return src.read(1, **read_kws)
             return src.read(1)
 
-    def _predict_t_stations(self, i, model_args=None):
-        return self.predict_t_arr(i, model_args)[self.station_rows,
-                                                 self.station_cols]
+    def _predict_t_stations(self, i, ucm_args=None):
+        return self.predict_t_arr(i, ucm_args)[self.station_rows,
+                                               self.station_cols]
 
-    def predict_t(self, model_args=None):
+    def predict_t(self, ucm_args=None):
         # we could also iterate over `self.t_refs` or `self.uhi_maxs`
         pred_delayed = [
-            dask.delayed(self._predict_t)(i, model_args)
+            dask.delayed(self._predict_t)(i, ucm_args)
             for i in range(len(self.ref_et_raster_filepaths))
         ]
 
@@ -418,7 +418,7 @@ class UCMCalibrator(simanneal.Annealer):
 
         # initial solution
         if initial_solution is None:
-            initial_solution = list(settings.DEFAULT_MODEL_PARAMS.values())
+            initial_solution = list(settings.DEFAULT_UCM_PARAMS.values())
         # init the parent `Annealer` instance with the initial solution
         super(UCMCalibrator, self).__init__(initial_solution)
 
@@ -465,13 +465,13 @@ class UCMCalibrator(simanneal.Annealer):
         self.state = state_neighbour
 
     def energy(self):
-        model_args = self.ucm_wrapper.base_args.copy()
-        model_args.update(t_air_average_radius=self.state[0],
-                          green_area_cooling_distance=self.state[1],
-                          cc_weight_shade=self.state[2],
-                          cc_weight_albedo=self.state[3],
-                          cc_weight_eti=self.state[4])
-        pred_arr = self.ucm_wrapper.predict_t(model_args=model_args).flatten()
+        ucm_args = self.ucm_wrapper.base_args.copy()
+        ucm_args.update(t_air_average_radius=self.state[0],
+                        green_area_cooling_distance=self.state[1],
+                        cc_weight_shade=self.state[2],
+                        cc_weight_albedo=self.state[3],
+                        cc_weight_eti=self.state[4])
+        pred_arr = self.ucm_wrapper.predict_t(ucm_args=ucm_args).flatten()
 
         return self.compute_metric(self.ucm_wrapper.obs_arr,
                                    pred_arr[self.ucm_wrapper.obs_mask])

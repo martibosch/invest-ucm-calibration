@@ -227,6 +227,6 @@ def cli(lulc_raster_filepath, biophysical_table_filepath, cc_method,
                 {
                     param_key: param_value
                     for param_key, param_value in zip(
-                        settings.DEFAULT_MODEL_PARAMS, solution)
+                        settings.DEFAULT_UCM_PARAMS, solution)
                 }, dst)
         logger.info("Dumped calibrated parameters to %s", dst_filepath)
