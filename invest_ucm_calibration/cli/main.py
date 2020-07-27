@@ -104,6 +104,11 @@ def _dict_from_kws(kws):
     'locations of each station (in the same CRS as the other rasters). '
     'Required if calibrating against station measurements.')
 @click.option(
+    '--dates', cls=OptionEatAll,
+    help='Date or list of dates that correspond to each of the observed '
+    'temperature raster provided in t_raster_filepaths. Ignored if '
+    '`station_t_filepath` is provided.')
+@click.option(
     '--align-rasters/--no-align-rasters', default=True,
     help='Whether the rasters should be aligned before passing them as '
     'arguments of the InVEST urban cooling model. Since the model already '
@@ -168,7 +173,7 @@ def _dict_from_kws(kws):
     'will be created (nonetheless, the calibrated parameters will be logged)')
 def cli(lulc_raster_filepath, biophysical_table_filepath, cc_method,
         ref_et_raster_filepaths, t_refs, uhi_maxs, t_raster_filepaths,
-        station_t_filepath, station_locations_filepath, align_rasters,
+        station_t_filepath, station_locations_filepath, dates, align_rasters,
         workspace_dir, initial_solution, extra_ucm_args, metric, stepsize,
         exclude_zero_kernel_dist, num_workers, num_steps, num_update_logs,
         dst_filepath):
@@ -211,7 +216,7 @@ def cli(lulc_raster_filepath, biophysical_table_filepath, cc_method,
         ref_et_raster_filepaths, t_refs=t_refs, uhi_maxs=uhi_maxs,
         t_raster_filepaths=t_raster_filepaths,
         station_t_filepath=station_t_filepath,
-        station_locations_filepath=station_locations_filepath,
+        station_locations_filepath=station_locations_filepath, dates=dates,
         align_rasters=align_rasters, workspace_dir=workspace_dir,
         initial_solution=initial_solution, extra_ucm_args=extra_ucm_args,
         metric=metric, stepsize=stepsize,

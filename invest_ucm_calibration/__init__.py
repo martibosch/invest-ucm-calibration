@@ -102,8 +102,8 @@ class UCMWrapper:
                  cc_method, ref_et_raster_filepaths, t_refs=None,
                  uhi_maxs=None, t_raster_filepaths=None,
                  station_t_filepath=None, station_locations_filepath=None,
-                 align_rasters=True, workspace_dir=None, extra_ucm_args=None,
-                 num_workers=None):
+                 dates=None, align_rasters=True, workspace_dir=None,
+                 extra_ucm_args=None, num_workers=None):
 
         if workspace_dir is None:
             # TODO: how do we ensure that this is removed?
@@ -127,6 +127,11 @@ class UCMWrapper:
             # calibrate against a map
             if isinstance(t_raster_filepaths, str):
                 t_raster_filepaths = [t_raster_filepaths]
+
+            # dates of the observed temperature rasters
+            if isinstance(dates, str):
+                dates = [dates]
+            self.dates = dates
 
             if align_rasters:
                 # a list is needed for the `_align_rasters` method
@@ -414,10 +419,10 @@ class UCMCalibrator(simanneal.Annealer):
                  cc_method, ref_et_raster_filepaths, t_refs=None,
                  uhi_maxs=None, t_raster_filepaths=None,
                  station_t_filepath=None, station_locations_filepath=None,
-                 align_rasters=True, workspace_dir=None, initial_solution=None,
-                 extra_ucm_args=None, metric=None, stepsize=None,
-                 exclude_zero_kernel_dist=True, num_workers=None,
-                 num_steps=None, num_update_logs=None):
+                 dates=None, align_rasters=True, workspace_dir=None,
+                 initial_solution=None, extra_ucm_args=None, metric=None,
+                 stepsize=None, exclude_zero_kernel_dist=True,
+                 num_workers=None, num_steps=None, num_update_logs=None):
         """
         Parameters
         ----------
@@ -457,6 +462,10 @@ class UCMCalibrator(simanneal.Annealer):
             that correspod to the locations of each station (in the same CRS
             as the other rasters). Required if calibrating against station
             measurements.
+        dates : str or datetime-like or list-like, optional
+            Date or list of dates that correspond to each of the observed
+            temperature raster provided in `t_raster_filepaths`. Ignored if
+            `station_t_filepath` is provided.
         align_rasters : bool, default True
             Whether the rasters should be aligned before passing them as
             arguments of the InVEST urban cooling model. Since the model
@@ -514,7 +523,7 @@ class UCMCalibrator(simanneal.Annealer):
             ref_et_raster_filepaths, t_refs=t_refs, uhi_maxs=uhi_maxs,
             t_raster_filepaths=t_raster_filepaths,
             station_t_filepath=station_t_filepath,
-            station_locations_filepath=station_locations_filepath,
+            station_locations_filepath=station_locations_filepath, dates=dates,
             align_rasters=align_rasters, workspace_dir=workspace_dir,
             extra_ucm_args=extra_ucm_args, num_workers=num_workers)
 
