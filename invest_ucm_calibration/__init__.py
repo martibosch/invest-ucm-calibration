@@ -10,6 +10,7 @@ import pandas as pd
 import pygeoprocessing
 import rasterio as rio
 import simanneal
+import xarray as xr
 from natcap.invest import urban_cooling_model as ucm
 from rasterio import transform
 from scipy import stats
@@ -99,6 +100,12 @@ class UCMWrapper:
         # self.workspace_dir = workspace_dir
         # self.base_args.update()
 
+        # get the raster metadata from lulc (used to predict air temperature
+        # rasters)
+        with rio.open(lulc_raster_filepath) as src:
+            self.meta = src.meta.copy()
+            self.data_mask = src.dataset_mask().astype(bool)
+
         # evapotranspiration rasters for each date
         if isinstance(ref_et_raster_filepaths, str):
             ref_et_raster_filepaths = [ref_et_raster_filepaths]
@@ -162,13 +169,11 @@ class UCMWrapper:
         else:
             station_location_df = pd.read_csv(station_locations_filepath,
                                               index_col=0)
-            with rio.open(lulc_raster_filepath) as src:
-                self.station_rows, self.station_cols = transform.rowcol(
-                    src.transform, station_location_df['x'],
-                    station_location_df['y'])
-                # useful to predict air temperature rasters
-                self.meta = src.meta.copy()
-                self.data_mask = src.dataset_mask().astype(bool)
+            # get the row/cols indices of the station locations in the
+            # temperature rasters
+            self.station_rows, self.station_cols = transform.rowcol(
+                self.meta['transform'], station_location_df['x'],
+                station_location_df['y'])
 
             station_t_df = pd.read_csv(station_t_filepath,
                                        index_col=0)[station_location_df.index]
@@ -249,6 +254,28 @@ class UCMWrapper:
                               os.cpu_count())
         self.num_workers = num_workers
 
+    # properties to process the geospatial raster grid
+    @property
+    def grid_x(self):
+        try:
+            return self._grid_x
+        except AttributeError:
+            cols = np.arange(self.meta['width'])
+            x, _ = transform.xy(self.meta['transform'], cols, cols)
+            self._grid_x = x
+            return self._grid_x
+
+    @property
+    def grid_y(self):
+        try:
+            return self._grid_y
+        except AttributeError:
+            rows = np.arange(self.meta['height'])
+            _, y = transform.xy(self.meta['transform'], rows, rows)
+            self._grid_y = y
+            return self._grid_y
+
+    # methods to predict temperatures
     def predict_t_arr(self, i, ucm_args=None):
         args = self.base_args.copy()
         if ucm_args is not None:
@@ -288,6 +315,28 @@ class UCMWrapper:
         return np.hstack(
             dask.compute(*pred_delayed, scheduler='processes',
                          num_workers=self.num_workers))
+
+    def predict_t_da(self, ucm_args=None):
+        pred_delayed = [
+            dask.delayed(self.predict_t_arr)(i, ucm_args)
+            for i in range(len(self.ref_et_raster_filepaths))
+        ]
+        t_arrs = list(
+            dask.compute(*pred_delayed, scheduler='processes',
+                         num_workers=self.num_workers))
+
+        if self.dates is None:
+            dates = np.arange(len(self.ref_et_raster_filepaths))
+        else:
+            dates = self.dates
+        t_da = xr.DataArray(
+            t_arrs, dims=('time', 'y', 'x'), coords={
+                'time': dates,
+                'y': self.grid_y,
+                'x': self.grid_x
+            }, name='T', attrs={'pyproj_srs': self.meta['crs'].to_proj4()})
+        return t_da.groupby('time').apply(
+            lambda x: x.where(self.data_mask, np.nan))
 
 
 class UCMCalibrator(simanneal.Annealer):
