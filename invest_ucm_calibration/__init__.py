@@ -159,12 +159,6 @@ class UCMWrapper:
             #     ['x', 'y']).to_pandas() - self.Tref_ser
             # prepare the flat observation array
             # obs_arr = T_da.values.flatten()
-
-            # TODO: support unaligned rasters?
-            # # prepare the cost function and its arguments
-            # # shape of the map (for each date)
-            # self.map_shape = T_da.shape[1:]
-            # self.resampling = Resampling.bilinear
         else:
             station_location_df = pd.read_csv(station_locations_filepath,
                                               index_col=0)
@@ -294,13 +288,6 @@ class UCMWrapper:
         return np.hstack(
             dask.compute(*pred_delayed, scheduler='processes',
                          num_workers=self.num_workers))
-
-    # TODO: support unaligned rasters?
-    # def _predict_t_map(self, date, model_args=None):
-    #     return self.predict_t_arr(date, model_args, read_kws={
-    #         'out_shape': self.map_shape,
-    #         'resampling': self.resampling
-    #     }).flatten()
 
 
 class UCMCalibrator(simanneal.Annealer):
