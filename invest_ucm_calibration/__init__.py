@@ -599,3 +599,29 @@ class UCMCalibrator(simanneal.Annealer):
 
         return self.compute_metric(self.ucm_wrapper.obs_arr,
                                    pred_arr[self.ucm_wrapper.obs_mask])
+
+    # shortcuts to useful `UCMWrapper` methods
+    # TODO: dry `ucm_args` with a decorator?
+    def predict_t(self, ucm_args=None):
+        if ucm_args is None:
+            ucm_args = self._ucm_params_dict.copy()
+
+        return self.ucm_wrapper.predict_t(ucm_args=ucm_args)
+
+    def predict_t_da(self, ucm_args=None):
+        if ucm_args is None:
+            ucm_args = self._ucm_params_dict.copy()
+
+        return self.ucm_wrapper.predict_t_da(ucm_args=ucm_args)
+
+    def get_sample_comparison_df(self, ucm_args=None):
+        if ucm_args is None:
+            ucm_args = self._ucm_params_dict.copy()
+
+        return self.ucm_wrapper.get_sample_comparison_df()
+
+    def get_model_perf_df(self, ucm_args=None, num_runs=None):
+        if ucm_args is None:
+            ucm_args = self._ucm_params_dict.copy()
+
+        return self.ucm_wrapper.get_model_perf_df(num_runs=num_runs)
