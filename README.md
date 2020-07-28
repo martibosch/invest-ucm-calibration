@@ -41,3 +41,9 @@ TODO
 * Support spatio-temporal datasets with [xarray](http://xarray.pydata.org) to avoid passing many separate rasters (and map each raster to a date more consistently)
 * Read both station measurements and station locations as a single geo-data frame
 
+
+Acknowledgments
+---------------
+
+* The calibration procedure is based simulated annealing implementation of [perrygeo/simanneal](https://github.com/perrygeo/simanneal)
+* With the support of the École Polytechnique Fédérale de Lausanne (EPFL)
