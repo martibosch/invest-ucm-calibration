@@ -43,7 +43,8 @@ extensions = [
 napoleon_numpy_dostring = True
 
 autodoc_mock_imports = [
-    'dask', 'numpy', 'pandas', 'rasterio', 'simanneal', 'natcap', 'sklearn'
+    'dask', 'fiona', 'natcap', 'numpy', 'pandas', 'pygeoprocessing',
+    'rasterio', 'scipy', 'shapely', 'simanneal', 'sklearn', 'xarray'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
