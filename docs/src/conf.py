@@ -34,6 +34,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 extensions = [
     'm2r',
     'sphinx.ext.autodoc',
+    'sphinx.ext.imgmath',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx_click.ext',

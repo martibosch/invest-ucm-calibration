@@ -104,6 +104,71 @@ class UCMWrapper:
                  station_t_filepath=None, station_locations_filepath=None,
                  dates=None, align_rasters=True, workspace_dir=None,
                  extra_ucm_args=None, num_workers=None):
+        """
+        Pythonic and open source interface to the InVEST urban cooling model.
+        A set of additional utility methods serve to compute temperature maps
+        and data frames.
+
+        Parameters
+        ----------
+        lulc_raster_filepath : str
+            Path to the raster of land use/land cover (LULC) file
+        biophysical_table_filepath : str
+            Path to the biophysical table CSV file
+        cc_method : str
+            Cooling capacity calculation method. Can be either 'factors' or
+            'intensity'
+        ref_et_raster_filepaths : str or list-like
+            Path to the reference evapotranspiration raster, or sequence of
+            strings with a path to the reference evapotranspiration raster
+        t_refs : numeric or list-like, optional
+            Reference air temperature. If not provided, it will be set as the
+            minimum observed temperature (raster or station measurements, for
+            each respective date if calibrating for multiple dates).
+        uhi_maxs : numeric or list-like, optional
+            Magnitude of the UHI effect. If not provided, it will be set as the
+            difference between the maximum and minimum observed temperature
+            (raster or station measurements, for each respective date if
+            calibrating for multiple dates).
+        t_raster_filepaths : str or list-like, optional
+            Path to the observed temperature raster, or sequence of strings
+            with a path to the observed temperature rasters. The raster must
+            be aligned to the LULC raster. Required if calibrating against
+            temperature map(s).
+        station_t_filepath : str, optional
+            Path to a table of air temperature measurements where each column
+            corresponds to a monitoring station and each row to a datetime.
+            Required if calibrating against station measurements.
+        station_locations_filepath : str, optional
+            Path to a table with the locations of each monitoring station,
+            where the first column features the station labels (that match the
+            columns of the table of air temperature measurements), and there
+            are (at least) a column labelled 'x' and a column labelled 'y'
+            that correspod to the locations of each station (in the same CRS
+            as the other rasters). Required if calibrating against station
+            measurements.
+        dates : str or datetime-like or list-like, optional
+            Date or list of dates that correspond to each of the observed
+            temperature raster provided in `t_raster_filepaths`. Ignored if
+            `station_t_filepath` is provided.
+        align_rasters : bool, default True
+            Whether the rasters should be aligned before passing them as
+            arguments of the InVEST urban cooling model. Since the model
+            already aligns the LULC and reference evapotranspiration rasters,
+            this argument is only useful to align the temperature rasters, and
+            is therefore ignored if calibrating against station measurements.
+        workspace_dir : str, optional
+            Path to the folder where the model outputs will be written. If not
+            provided, a temporary directory will be used.
+        extra_ucm_args : dict-like, optional
+            Other keyword arguments to be passed to the `execute` method of
+            the urban cooling model.
+        num_workers : int, optional
+            Number of workers so that the simulations of each iteration can be
+            executed at scale. Only useful if calibrating for multiple dates.
+            If not provided, it will be set automatically depending on the
+            number of dates and available number of processors in the CPU.
+        """
 
         if workspace_dir is None:
             # TODO: how do we ensure that this is removed?
@@ -294,6 +359,26 @@ class UCMWrapper:
 
     # methods to predict temperatures
     def predict_t_arr(self, i, ucm_args=None):
+        """
+        Predict a temperature array for one of the calibration dates
+
+        Parameters
+        ----------
+        i : int
+            Positional index of the calibration date
+        ucm_args : dict-like, optional
+            Custom keyword arguments to be passed to the `execute` method of
+            the urban cooling model. The provided keys will override those set
+            in the `base_args` attribute of this class (set up in the
+            initialization method).
+
+        Returns
+        -------
+        t_arr : np.ndarray
+            Predicted temperature array aligned with the LULC raster for the
+            selected date 
+        """
+
         args = self.base_args.copy()
         if ucm_args is not None:
             args.update(ucm_args)
@@ -323,6 +408,27 @@ class UCMWrapper:
                                                self.station_cols]
 
     def predict_t(self, ucm_args=None):
+        """
+        Predict the temperatures for the observation samples for all the
+        calibration dates. The samples correspond either to a raster array
+        if the object is instantiated with a raster of observed temperatures
+        (i.e., `t_raster_filepaths` argument), or to a list of station
+        locations if the object is instantiated with a table of air
+        temperature measurements (i.e., the `station_t_filepath` argument).
+
+        Parameters
+        ----------
+        ucm_args : dict-like, optional
+            Custom keyword arguments to be passed to the `execute` method of
+            the urban cooling model. The provided keys will override those set
+            in the `base_args` attribute of this class (set up in the
+            initialization method).
+
+        Returns
+        -------
+        t : np.ndarray
+            Predicted temperature samples for each date
+        """
         # we could also iterate over `self.t_refs` or `self.uhi_maxs`
         pred_delayed = [
             dask.delayed(self._predict_t)(i, ucm_args)
@@ -334,6 +440,24 @@ class UCMWrapper:
                          num_workers=self.num_workers))
 
     def predict_t_da(self, ucm_args=None):
+        """
+        Predict a temperature data-array aligned with the LULC raster for all
+        the calibration dates
+
+        Parameters
+        ----------
+        ucm_args : dict-like, optional
+            Custom keyword arguments to be passed to the `execute` method of
+            the urban cooling model. The provided keys will override those set
+            in the `base_args` attribute of this class (set up in the
+            initialization method).
+
+        Returns
+        -------
+        t_da : xr.DataArray
+            Predicted temperature data array aligned with the LULC raster
+        """
+
         pred_delayed = [
             dask.delayed(self.predict_t_arr)(i, ucm_args)
             for i in range(len(self.ref_et_raster_filepaths))
@@ -356,6 +480,25 @@ class UCMWrapper:
             lambda x: x.where(self.data_mask, np.nan))
 
     def get_sample_comparison_df(self, ucm_args=None):
+        """
+        Compute a comparison data frame of the observed and predicted values
+        for each sample (i.e., station measurement for a specific date)
+
+        Parameters
+        ----------
+        ucm_args : dict-like, optional
+            Custom keyword arguments to be passed to the `execute` method of
+            the urban cooling model. The provided keys will override those set
+            in the `base_args` attribute of this class (set up in the
+            initialization method).
+
+        Returns
+        -------
+        sample_comparison_df : pd.DataFrame
+            Comparison data frame with columns for the sample date, station,
+            observed and predicted values
+        """
+
         tair_pred_df = pd.DataFrame(index=self.station_tair_df.columns)
 
         T_da = self.predict_t_da(ucm_args=ucm_args)
@@ -376,6 +519,31 @@ class UCMWrapper:
                          })
 
     def get_model_perf_df(self, ucm_args=None, num_runs=None):
+        """
+        Compute comparing the performance of the calibrated model with
+        randomly sampling temperature values from the
+        $\[T_{ref}, T_{ref} + UHI_{max}\]$ range according to a uniform and
+        normal distribution
+
+        Parameters
+        ----------
+        ucm_args : dict-like, optional
+            Custom keyword arguments to be passed to the `execute` method of
+            the urban cooling model. The provided keys will override those set
+            in the `base_args` attribute of this class (set up in the
+            initialization method).
+        num_runs : int, optional
+            Number of runs over which the results of randomly sampling (from
+            both the uniform and normal distribution) will be averaged. If not
+            provided, the value set in `settings.DEFAULT_MODEL_PERF_NUM_RUNS`
+            will be used.
+
+        Returns
+        -------
+        model_perf_df : pd.DataFrame
+            Predicted temperature data array aligned with the LULC raster
+        """
+
         comparison_df = self.get_sample_comparison_df(
             ucm_args=ucm_args).dropna()
 
@@ -424,6 +592,8 @@ class UCMCalibrator(simanneal.Annealer):
                  stepsize=None, exclude_zero_kernel_dist=True,
                  num_workers=None, num_steps=None, num_update_logs=None):
         """
+        Utility to calibrate the urban cooling model
+
         Parameters
         ----------
         lulc_raster_filepath : str
@@ -611,6 +781,34 @@ class UCMCalibrator(simanneal.Annealer):
 
     def calibrate(self, initial_solution=None, num_steps=None,
                   num_update_logs=None):
+        """
+        Run a simulated annealing procedure to get the arguments of the InVEST
+        urban cooling model that minimize the performance metric
+
+        Parameters
+        ----------
+        initial_solution : list-like, optional
+            Sequence with the parameter values used as initial solution, of
+            the form (t_air_average_radius, green_area_cooling_distance,
+            cc_weight_shade, cc_weight_albedo, cc_weight_eti). If not provided,
+            the default values of the urban cooling model will be used.
+        num_steps : int, optional.
+            Number of iterations of the simulated annealing procedure. If not
+            provided, the value set in `settings.DEFAULT_NUM_STEPS` will be
+            used.
+        num_update_logs : int, default 100
+            Number of updates that will be logged. If `num_steps` is equal to
+            `num_update_logs`, each iteration will be logged. If not provided,
+            the value set in `settings.DEFAULT_UPDATE_LOGS` will be used.
+
+        Returns
+        -------
+        (state, metric) : the best state, i.e., combination of arguments of
+            the form (t_air_average_radius, green_area_cooling_distance,
+            cc_weight_shade, cc_weight_albedo, cc_weight_eti) and the
+            corresponding metric
+        """
+
         # Override the values set in the init method. Note that the attribute
         # names are defined in the `Annealer` class
         if initial_solution is not None:
@@ -625,24 +823,108 @@ class UCMCalibrator(simanneal.Annealer):
     # shortcuts to useful `UCMWrapper` methods
     # TODO: dry `ucm_args` with a decorator?
     def predict_t(self, ucm_args=None):
+        """
+        Predict the temperatures for the observation samples for all the
+        calibration dates. The samples correspond either to a raster array
+        if the object is instantiated with a raster of observed temperatures
+        (i.e., `t_raster_filepaths` argument), or to a list of station
+        locations if the object is instantiated with a table of air
+        temperature measurements (i.e., the `station_t_filepath` argument).
+
+        Parameters
+        ----------
+        ucm_args : dict-like, optional
+            Custom keyword arguments to be passed to the `execute` method of
+            the urban cooling model. The provided keys will override those set
+            in the current solution found by the calibrator, i.e., the `state`
+            attribute.
+
+        Returns
+        -------
+        t : np.ndarray
+            Predicted temperature samples for each date
+        """
+
         if ucm_args is None:
             ucm_args = self._ucm_params_dict.copy()
 
         return self.ucm_wrapper.predict_t(ucm_args=ucm_args)
 
     def predict_t_da(self, ucm_args=None):
+        """
+        Predict a temperature data-array aligned with the LULC raster for all
+        the calibration dates
+
+        Parameters
+        ----------
+        ucm_args : dict-like, optional
+            Custom keyword arguments to be passed to the `execute` method of
+            the urban cooling model. The provided keys will override those set
+            in the current solution found by the calibrator, i.e., the `state`
+            attribute.
+
+        Returns
+        -------
+        t_da : xr.DataArray
+            Predicted temperature data array aligned with the LULC raster
+        """
+
         if ucm_args is None:
             ucm_args = self._ucm_params_dict.copy()
 
         return self.ucm_wrapper.predict_t_da(ucm_args=ucm_args)
 
     def get_sample_comparison_df(self, ucm_args=None):
+        """
+        Compute a comparison data frame of the observed and predicted values
+        for each sample (i.e., station measurement for a specific date)
+
+        Parameters
+        ----------
+        ucm_args : dict-like, optional
+            Custom keyword arguments to be passed to the `execute` method of
+            the urban cooling model. The provided keys will override those set
+            in the current solution found by the calibrator, i.e., the `state`
+            attribute.
+
+        Returns
+        -------
+        sample_comparison_df : pd.DataFrame
+            Comparison data frame with columns for the sample date, station,
+            observed and predicted values
+        """
+
         if ucm_args is None:
             ucm_args = self._ucm_params_dict.copy()
 
         return self.ucm_wrapper.get_sample_comparison_df(ucm_args=ucm_args)
 
     def get_model_perf_df(self, ucm_args=None, num_runs=None):
+        """
+        Compute comparing the performance of the calibrated model with
+        randomly sampling temperature values from the
+        $\[T_{ref}, T_{ref} + UHI_{max}\]$ range according to a uniform and
+        normal distribution
+
+        Parameters
+        ----------
+        ucm_args : dict-like, optional
+            Custom keyword arguments to be passed to the `execute` method of
+            the urban cooling model. The provided keys will override those set
+            in the current solution found by the calibrator, i.e., the `state`
+            attribute.
+        num_runs : int, optional
+            Number of runs over which the results of randomly sampling (from
+            both the uniform and normal distribution) will be averaged. If not
+            provided, the value set in `settings.DEFAULT_MODEL_PERF_NUM_RUNS`
+            will be used.
+
+        Returns
+        -------
+        model_perf_df : pd.DataFrame
+            Predicted temperature data array aligned with the LULC raster
+        """
+
         if ucm_args is None:
             ucm_args = self._ucm_params_dict.copy()
 
