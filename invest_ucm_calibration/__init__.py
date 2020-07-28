@@ -627,10 +627,11 @@ class UCMCalibrator(simanneal.Annealer):
         if ucm_args is None:
             ucm_args = self._ucm_params_dict.copy()
 
-        return self.ucm_wrapper.get_sample_comparison_df()
+        return self.ucm_wrapper.get_sample_comparison_df(ucm_args=ucm_args)
 
     def get_model_perf_df(self, ucm_args=None, num_runs=None):
         if ucm_args is None:
             ucm_args = self._ucm_params_dict.copy()
 
-        return self.ucm_wrapper.get_model_perf_df(num_runs=num_runs)
+        return self.ucm_wrapper.get_model_perf_df(ucm_args=ucm_args,
+                                                  num_runs=num_runs)
