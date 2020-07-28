@@ -223,6 +223,7 @@ def cli(lulc_raster_filepath, biophysical_table_filepath, cc_method,
         exclude_zero_kernel_dist=exclude_zero_kernel_dist,
         num_workers=num_workers, num_steps=num_steps,
         num_update_logs=num_update_logs)
+    # solution, cost = ucm_calibrator.calibrate()
     solution, cost = ucm_calibrator.anneal()
     logger.info("Best solution %s with cost %s", str(solution), cost)
 

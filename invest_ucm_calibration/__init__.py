@@ -609,6 +609,19 @@ class UCMCalibrator(simanneal.Annealer):
         return self.compute_metric(self.ucm_wrapper.obs_arr,
                                    pred_arr[self.ucm_wrapper.obs_mask])
 
+    def calibrate(self, initial_solution=None, num_steps=None,
+                  num_update_logs=None):
+        # Override the values set in the init method. Note that the attribute
+        # names are defined in the `Annealer` class
+        if initial_solution is not None:
+            self.state = initial_solution
+        if num_steps is not None:
+            self.steps = num_steps
+        if num_update_logs is not None:
+            self.updates = num_update_logs
+
+        return self.anneal()
+
     # shortcuts to useful `UCMWrapper` methods
     # TODO: dry `ucm_args` with a decorator?
     def predict_t(self, ucm_args=None):
