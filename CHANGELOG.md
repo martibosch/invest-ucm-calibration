@@ -1,5 +1,12 @@
 # Change log
 
+## 0.3.1 (28/07/2020)
+
+* fix readthedocs build issues by adding more libraries to `autodoc_mock_imports`
+* added docstrings for public API methods
+* added `UCMCalibrator.calibrate` method (uses `Annealer.anneal`)
+* fix passing `ucm_args` to `get_comparison_df` and `get_model_perf_df` methods
+
 ## 0.3.0 (27/07/2020)
  
 * custom `dates` argument in `UCMWrapper`
