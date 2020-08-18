@@ -138,7 +138,8 @@ class UCMWrapper:
         station_t_filepath : str, optional
             Path to a table of air temperature measurements where each column
             corresponds to a monitoring station and each row to a datetime.
-            Required if calibrating against station measurements.
+            Required if calibrating against station measurements. Ignored if
+            providing `t_raster_filepaths`.
         station_locations_filepath : str, optional
             Path to a table with the locations of each monitoring station,
             where the first column features the station labels (that match the
@@ -146,7 +147,7 @@ class UCMWrapper:
             are (at least) a column labelled 'x' and a column labelled 'y'
             that correspod to the locations of each station (in the same CRS
             as the other rasters). Required if calibrating against station
-            measurements.
+            measurements. Ignored if providing `t_raster_filepaths`.
         dates : str or datetime-like or list-like, optional
             Date or list of dates that correspond to each of the observed
             temperature raster provided in `t_raster_filepaths`. Ignored if
@@ -186,6 +187,11 @@ class UCMWrapper:
         # evapotranspiration rasters for each date
         if isinstance(ref_et_raster_filepaths, str):
             ref_et_raster_filepaths = [ref_et_raster_filepaths]
+
+        # method to predict the temperature values (by default, predict
+        # temperature rasters, unless calibrating against station measurements
+        # - see the two calibration approaches below)
+        self._predict_t = self.predict_t_arr
 
         # calibration approaches
         if t_raster_filepaths is not None:
@@ -239,8 +245,6 @@ class UCMWrapper:
                 else:
                     obs_arr, _, __ = _preprocess_t_rasters(t_raster_filepaths)
 
-            # method to predict the temperature values
-            self._predict_t = self.predict_t_arr
             # TODO: use xarray?
             # T_da = xr.open_dataarray(tair_da_filepath)
             # self.Tref_ser = T_da.groupby('time').min(['x', 'y']).to_pandas()
@@ -248,7 +252,7 @@ class UCMWrapper:
             #     ['x', 'y']).to_pandas() - self.Tref_ser
             # prepare the flat observation array
             # obs_arr = T_da.values.flatten()
-        else:
+        elif station_t_filepath is not None:
             station_location_df = pd.read_csv(station_locations_filepath,
                                               index_col=0)
             # get the row/cols indices of the station locations in the
