@@ -414,11 +414,10 @@ class UCMWrapper:
     def predict_t(self, ucm_args=None):
         """
         Predict the temperatures for the observation samples for all the
-        calibration dates. The samples correspond either to a raster array
-        if the object is instantiated with a raster of observed temperatures
-        (i.e., `t_raster_filepaths` argument), or to a list of station
-        locations if the object is instantiated with a table of air
-        temperature measurements (i.e., the `station_t_filepath` argument).
+        calibration dates. By default, the samples correspond either to an
+        array aligned with the LULC raster. If the object is instantiated with
+        a table of air temperature measurements (i.e., the `station_t_filepath`
+        argument), a list of station locations.
 
         Parameters
         ----------
@@ -486,7 +485,9 @@ class UCMWrapper:
     def get_sample_comparison_df(self, ucm_args=None):
         """
         Compute a comparison data frame of the observed and predicted values
-        for each sample (i.e., station measurement for a specific date)
+        for each sample (i.e., station measurement for a specific date).
+        Requires that the object has been instantiated with either
+        `t_raster_filepath` or `station_t_filepath`.
 
         Parameters
         ----------
@@ -526,8 +527,9 @@ class UCMWrapper:
         """
         Compute comparing the performance of the calibrated model with
         randomly sampling temperature values from the
-        $\[T_{ref}, T_{ref} + UHI_{max}\]$ range according to a uniform and
-        normal distribution
+        :math:`\[T_{ref}, T_{ref} + UHI_{max}\]` range according to a uniform
+        and normal distribution. Requires that the object has been
+        instantiated with either `t_raster_filepath` or `station_t_filepath`.
 
         Parameters
         ----------
@@ -829,11 +831,10 @@ class UCMCalibrator(simanneal.Annealer):
     def predict_t(self, ucm_args=None):
         """
         Predict the temperatures for the observation samples for all the
-        calibration dates. The samples correspond either to a raster array
-        if the object is instantiated with a raster of observed temperatures
-        (i.e., `t_raster_filepaths` argument), or to a list of station
-        locations if the object is instantiated with a table of air
-        temperature measurements (i.e., the `station_t_filepath` argument).
+        calibration dates. By default, the samples correspond either to an
+        array aligned with the LULC raster. If the object is instantiated with
+        a table of air temperature measurements (i.e., the `station_t_filepath`
+        argument), a list of station locations.
 
         Parameters
         ----------
@@ -907,8 +908,8 @@ class UCMCalibrator(simanneal.Annealer):
         """
         Compute comparing the performance of the calibrated model with
         randomly sampling temperature values from the
-        $\[T_{ref}, T_{ref} + UHI_{max}\]$ range according to a uniform and
-        normal distribution
+        :math:`\[T_{ref}, T_{ref} + UHI_{max}\]` range according to a uniform
+        and normal distribution
 
         Parameters
         ----------
