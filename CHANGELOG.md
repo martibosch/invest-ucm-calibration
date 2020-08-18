@@ -1,5 +1,10 @@
 # Change log
 
+## 0.3.2 (18/08/2020)
+
+* correct docs: math, predict_t_arr, opt. UCMWrapper args
+* optional `t_raster_filepaths`/`station_t_filepath` in `UCMWrapper`
+
 ## 0.3.1 (28/07/2020)
 
 * fix readthedocs build issues by adding more libraries to `autodoc_mock_imports`
