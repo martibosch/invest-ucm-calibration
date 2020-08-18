@@ -44,6 +44,21 @@ class TestIUC(unittest.TestCase):
     # def tearDown(self):
     #     shutil.rmtree(self.workspace_dir)
 
+    def test_wrapper_only(self):
+        # test that we can use the `UCMWrapper` class without providing any
+        # observed temperatures (just to execute the urban cooling model)
+        t_refs = 20
+        uhi_maxs = 10
+
+        iuc.UCMWrapper(self.lulc_raster_filepath,
+                       self.biophysical_table_filepath, self.cc_method,
+                       self.ref_et_raster_filepaths[0], t_refs,
+                       uhi_maxs).predict_t_da()
+
+        # TODO: test that proper (informative) errors are raised when calling
+        # methods that require observed temperatures (e.g.,
+        # `get_sample_comparison_df`, `get_model_perf_df`...)
+
     def test_one_day(self):
         ref_et_raster_filepath = self.ref_et_raster_filepaths[0]
         t_raster_filepath = self.t_raster_filepaths[0]

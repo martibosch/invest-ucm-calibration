@@ -188,11 +188,6 @@ class UCMWrapper:
         if isinstance(ref_et_raster_filepaths, str):
             ref_et_raster_filepaths = [ref_et_raster_filepaths]
 
-        # method to predict the temperature values (by default, predict
-        # temperature rasters, unless calibrating against station measurements
-        # - see the two calibration approaches below)
-        self._predict_t = self.predict_t_arr
-
         # calibration approaches
         if t_raster_filepaths is not None:
             # calibrate against a map
@@ -202,7 +197,6 @@ class UCMWrapper:
             # dates of the observed temperature rasters
             if isinstance(dates, str):
                 dates = [dates]
-            self.dates = dates
 
             if align_rasters:
                 # a list is needed for the `_align_rasters` method
@@ -245,6 +239,8 @@ class UCMWrapper:
                 else:
                     obs_arr, _, __ = _preprocess_t_rasters(t_raster_filepaths)
 
+            # method to predict the temperature values
+            self._predict_t = self.predict_t_arr
             # TODO: use xarray?
             # T_da = xr.open_dataarray(tair_da_filepath)
             # self.Tref_ser = T_da.groupby('time').min(['x', 'y']).to_pandas()
@@ -264,7 +260,7 @@ class UCMWrapper:
             station_t_df = pd.read_csv(station_t_filepath,
                                        index_col=0)[station_location_df.index]
             station_t_df.index = pd.to_datetime(station_t_df.index)
-            self.dates = station_t_df.index
+            dates = station_t_df.index
             self.station_tair_df = station_t_df
 
             # tref and uhi max
@@ -278,6 +274,13 @@ class UCMWrapper:
 
             # method to predict the temperature values
             self._predict_t = self._predict_t_stations
+        else:
+            # no calibration/comparison with reference values possible, just
+            # use the wrapper to run the model
+            self._predict_t = self.predict_t_arr
+            # this is useful in this same method (see below)
+            obs_arr = None
+            dates = None
 
         # create a dummy geojson with the bounding box extent for the area of
         # interest - this is completely ignored during the calibration
@@ -299,6 +302,9 @@ class UCMWrapper:
                     },
                 })
 
+        # store the dates as class attributes
+        self.dates = dates
+
         # store reference temperatures and UHI magnitudes as class attributes
         if not _is_sequence(t_refs):
             t_refs = [t_refs]
@@ -308,9 +314,10 @@ class UCMWrapper:
         self.uhi_maxs = uhi_maxs
 
         # flat observation array to compute the calibration metric
-        self.obs_arr = obs_arr.flatten()
-        self.obs_mask = ~np.isnan(self.obs_arr)
-        self.obs_arr = self.obs_arr[self.obs_mask]
+        if obs_arr is not None:
+            self.obs_arr = obs_arr.flatten()
+            self.obs_mask = ~np.isnan(self.obs_arr)
+            self.obs_arr = self.obs_arr[self.obs_mask]
 
         # model parameters: prepare the dict here so that all the paths/
         # parameters have been properly set above
