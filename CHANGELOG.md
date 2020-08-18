@@ -1,5 +1,9 @@
 # Change log
 
+## 0.3.3 (18/08/2020)
+
+* corrected `obs_arr` and `dates` in `UCMWrapper.__init__` and test that certain functionalities can work without providing observed temperature values
+
 ## 0.3.2 (18/08/2020)
 
 * correct docs: math, predict_t_arr, opt. UCMWrapper args
