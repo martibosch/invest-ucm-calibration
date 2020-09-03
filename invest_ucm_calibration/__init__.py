@@ -534,7 +534,7 @@ class UCMWrapper:
         """
         Compute comparing the performance of the calibrated model with
         randomly sampling temperature values from the
-        :math:`\[T_{ref}, T_{ref} + UHI_{max}\]` range according to a uniform
+        :math:`[T_{ref}, T_{ref} + UHI_{max}]` range according to a uniform
         and normal distribution. Requires that the object has been
         instantiated with either `t_raster_filepath` or `station_t_filepath`.
 
@@ -915,7 +915,7 @@ class UCMCalibrator(simanneal.Annealer):
         """
         Compute comparing the performance of the calibrated model with
         randomly sampling temperature values from the
-        :math:`\[T_{ref}, T_{ref} + UHI_{max}\]` range according to a uniform
+        :math:`[T_{ref}, T_{ref} + UHI_{max}]` range according to a uniform
         and normal distribution
 
         Parameters
