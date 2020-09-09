@@ -44,20 +44,22 @@ def _align_rasters(lulc_raster_filepath, ref_et_raster_filepaths,
 
     # get the intersection mask
     with rio.open(dst_lulc_raster_filepath) as src:
-        mask = src.dataset_mask()
+        meta = src.meta.copy()
+        data_mask = src.dataset_mask()
     for dst_raster_filepath in dst_ref_et_raster_filepaths + \
             dst_t_raster_filepaths:
         with rio.open(dst_raster_filepath) as src:
-            mask &= src.dataset_mask()
+            data_mask &= src.dataset_mask()
 
     for dst_raster_filepath in [dst_lulc_raster_filepath] + \
             dst_ref_et_raster_filepaths + dst_t_raster_filepaths:
         with rio.open(dst_raster_filepath, 'r+') as ds:
             ds.write(
-                np.where(mask, ds.read(1), ds.nodata).astype(ds.dtypes[0]), 1)
+                np.where(data_mask, ds.read(1),
+                         ds.nodata).astype(ds.dtypes[0]), 1)
 
-    return (dst_lulc_raster_filepath, dst_ref_et_raster_filepaths,
-            dst_t_raster_filepaths)
+    return (meta, data_mask.astype(bool), dst_lulc_raster_filepath,
+            dst_ref_et_raster_filepaths, dst_t_raster_filepaths)
 
 
 def _preprocess_t_rasters(t_raster_filepaths):
@@ -75,7 +77,7 @@ def _preprocess_t_rasters(t_raster_filepaths):
             t_refs.append(t_min)
             uhi_maxs.append(np.nanmax(t_arr) - t_min)
 
-    return np.concatenate(obs_arrs), t_refs, uhi_maxs
+    return obs_arrs, t_refs, uhi_maxs
 
 
 def _inverted_r2_score(obs, pred):
@@ -178,25 +180,21 @@ class UCMWrapper:
         # self.workspace_dir = workspace_dir
         # self.base_args.update()
 
-        # get the raster metadata from lulc (used to predict air temperature
-        # rasters)
-        with rio.open(lulc_raster_filepath) as src:
-            self.meta = src.meta.copy()
-            self.data_mask = src.dataset_mask().astype(bool)
-
         # evapotranspiration rasters for each date
         if isinstance(ref_et_raster_filepaths, str):
             ref_et_raster_filepaths = [ref_et_raster_filepaths]
+
+        # get the raster metadata from lulc (used to predict air temperature
+        # rasters)
+        with rio.open(lulc_raster_filepath) as src:
+            meta = src.meta.copy()
+            data_mask = src.dataset_mask().astype(bool)
 
         # calibration approaches
         if t_raster_filepaths is not None:
             # calibrate against a map
             if isinstance(t_raster_filepaths, str):
                 t_raster_filepaths = [t_raster_filepaths]
-
-            # dates of the observed temperature rasters
-            if isinstance(dates, str):
-                dates = [dates]
 
             if align_rasters:
                 # a list is needed for the `_align_rasters` method
@@ -218,69 +216,76 @@ class UCMWrapper:
                 # the call below returns the same `dst_lulc_raster_filepath`
                 # `dst_ref_et_raster_filepaths` and `dst_t_raster_filepaths`
                 # passed as args
-                lulc_raster_filepath, ref_et_raster_filepaths, \
-                    t_raster_filepaths = _align_rasters(
-                        lulc_raster_filepath, ref_et_raster_filepaths,
-                        t_raster_filepaths, dst_lulc_raster_filepath,
-                        dst_ref_et_raster_filepaths, dst_t_raster_filepaths)
+                (meta, data_mask, lulc_raster_filepath,
+                 ref_et_raster_filepaths, t_raster_filepaths) = _align_rasters(
+                     lulc_raster_filepath, ref_et_raster_filepaths,
+                     t_raster_filepaths, dst_lulc_raster_filepath,
+                     dst_ref_et_raster_filepaths, dst_t_raster_filepaths)
 
-            # Tref and UHImax
+            # observed values array, Tref and UHImax
             if t_refs is None:
                 if uhi_maxs is None:
-                    obs_arr, t_refs, uhi_maxs = _preprocess_t_rasters(
+                    obs_arrs, t_refs, uhi_maxs = _preprocess_t_rasters(
                         t_raster_filepaths)
                 else:
-                    obs_arr, t_refs, _ = _preprocess_t_rasters(
+                    obs_arrs, t_refs, _ = _preprocess_t_rasters(
                         t_raster_filepaths)
             else:
                 if uhi_maxs is None:
-                    obs_arr, _, uhi_maxs = _preprocess_t_rasters(
+                    obs_arrs, _, uhi_maxs = _preprocess_t_rasters(
                         t_raster_filepaths)
                 else:
-                    obs_arr, _, __ = _preprocess_t_rasters(t_raster_filepaths)
+                    obs_arrs, _, __ = _preprocess_t_rasters(t_raster_filepaths)
+            # need to replace nodata with `nan` so that `dropna` works below
+            # the `_preprocess_t_rasters` method already uses `np.where` to
+            # that end, however the `data_mask` used here might be different
+            # (i.e., the intersection of the data regions of all rasters)
+            obs_arr = np.concatenate([
+                np.where(data_mask, _obs_arr, np.nan) for _obs_arr in obs_arrs
+            ])
 
-            # method to predict the temperature values
-            self._predict_t = self.predict_t_arr
-            # TODO: use xarray?
-            # T_da = xr.open_dataarray(tair_da_filepath)
-            # self.Tref_ser = T_da.groupby('time').min(['x', 'y']).to_pandas()
-            # self.uhi_max_ser = T_da.groupby('time').max(
-            #     ['x', 'y']).to_pandas() - self.Tref_ser
-            # prepare the flat observation array
-            # obs_arr = T_da.values.flatten()
+            # attributes to index the samples
+            if isinstance(dates, str):
+                dates = [dates]
+            sample_name = 'pixel'
+            # the sample index/keys here will select all the pixels of the
+            # rasters, indexed by their flat-array position - this is rather
+            # silly but this way the attributes work in the same way when
+            # calibrating against observed temperature rasters or station
+            # measurements
+            # sample_keys = np.flatnonzero(data_mask)
+            # sample_index = np.arange(data_mask.sum())
+            sample_index = np.arange(data_mask.size)
+            sample_keys = np.arange(data_mask.size)
         elif station_t_filepath is not None:
             station_location_df = pd.read_csv(station_locations_filepath,
                                               index_col=0)
-            # get the row/cols indices of the station locations in the
-            # temperature rasters
-            self.station_rows, self.station_cols = transform.rowcol(
-                self.meta['transform'], station_location_df['x'],
-                station_location_df['y'])
-
             station_t_df = pd.read_csv(station_t_filepath,
                                        index_col=0)[station_location_df.index]
             station_t_df.index = pd.to_datetime(station_t_df.index)
-            dates = station_t_df.index
-            self.station_tair_df = station_t_df
 
-            # tref and uhi max
+            # observed values array, Tref and UHImax
             if t_refs is None:
                 t_refs = station_t_df.min(axis=1)
             if uhi_maxs is None:
                 uhi_maxs = station_t_df.max(axis=1) - t_refs
-
-            # prepare the observation array
             obs_arr = station_t_df.values  # .flatten()
 
-            # method to predict the temperature values
-            self._predict_t = self._predict_t_stations
+            # attributes to index the samples
+            dates = station_t_df.index
+            sample_name = 'station'
+            sample_index = station_t_df.columns
+            sample_keys = np.ravel_multi_index(
+                transform.rowcol(meta['transform'], station_location_df['x'],
+                                 station_location_df['y']),
+                (meta['height'], meta['width']))
         else:
-            # no calibration/comparison with reference values possible, just
-            # use the wrapper to run the model
-            self._predict_t = self.predict_t_arr
             # this is useful in this same method (see below)
-            obs_arr = None
             dates = None
+            sample_name = None
+            sample_index = None
+            sample_keys = None
+            obs_arr = None
 
         # create a dummy geojson with the bounding box extent for the area of
         # interest - this is completely ignored during the calibration
@@ -302,8 +307,13 @@ class UCMWrapper:
                     },
                 })
 
-        # store the dates as class attributes
+        # store the attributes to index the samples
+        self.meta = meta
+        self.data_mask = data_mask
         self.dates = dates
+        self.sample_name = sample_name
+        self.sample_index = sample_index
+        self.sample_keys = sample_keys
 
         # store reference temperatures and UHI magnitudes as class attributes
         if not _is_sequence(t_refs):
@@ -414,10 +424,6 @@ class UCMWrapper:
             # return src.read(1, **read_kws)
             return src.read(1)
 
-    def _predict_t_stations(self, i, ucm_args=None):
-        return self.predict_t_arr(i, ucm_args)[self.station_rows,
-                                               self.station_cols]
-
     def predict_t(self, ucm_args=None):
         """
         Predict the temperatures for the observation samples for all the
@@ -441,7 +447,7 @@ class UCMWrapper:
         """
         # we could also iterate over `self.t_refs` or `self.uhi_maxs`
         pred_delayed = [
-            dask.delayed(self._predict_t)(i, ucm_args)
+            dask.delayed(self.predict_t_arr)(i, ucm_args)
             for i in range(len(self.ref_et_raster_filepaths))
         ]
 
@@ -511,24 +517,25 @@ class UCMWrapper:
             observed and predicted values
         """
 
-        tair_pred_df = pd.DataFrame(index=self.station_tair_df.columns)
+        tair_pred_df = pd.DataFrame(index=self.sample_index)
 
-        T_da = self.predict_t_da(ucm_args=ucm_args)
-        for date, date_da in T_da.groupby('time'):
-            tair_pred_df[date] = date_da.values[self.station_rows,
-                                                self.station_cols]
+        t_da = self.predict_t_da(ucm_args=ucm_args)
+        for date, date_da in t_da.groupby('time'):
+            tair_pred_df[date] = date_da.values.flatten()[self.sample_keys]
         tair_pred_df = tair_pred_df.transpose()
 
         # comparison_df['err'] = comparison_df['pred'] - comparison_df['obs']
         # comparison_df['sq_err'] = comparison_df['err']**2
-        return pd.concat([self.station_tair_df.stack(),
-                          tair_pred_df.stack()],
-                         axis=1).reset_index().rename(columns={
-                             'level_0': 'date',
-                             'level_1': 'station',
-                             0: 'obs',
-                             1: 'pred'
-                         })
+        sample_comparison_df = pd.DataFrame(
+            {'pred': tair_pred_df.stack(dropna=False)[self.obs_mask]})
+        sample_comparison_df.loc[sample_comparison_df.index,
+                                 'obs'] = self.obs_arr
+        return sample_comparison_df.reset_index().rename(columns={
+            'level_0': 'date',
+            'level_1': self.sample_name,
+            0: 'obs',
+            1: 'pred'
+        })
 
     def get_model_perf_df(self, ucm_args=None, num_runs=None):
         """
@@ -787,7 +794,8 @@ class UCMCalibrator(simanneal.Annealer):
 
     def energy(self):
         ucm_args = self._ucm_params_dict.copy()
-        pred_arr = self.ucm_wrapper.predict_t(ucm_args=ucm_args).flatten()
+        pred_arr = self.ucm_wrapper.predict_t(
+            ucm_args=ucm_args).flatten()[self.ucm_wrapper.sample_keys]
 
         return self.compute_metric(self.ucm_wrapper.obs_arr,
                                    pred_arr[self.ucm_wrapper.obs_mask])
