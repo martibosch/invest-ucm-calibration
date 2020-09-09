@@ -44,20 +44,22 @@ def _align_rasters(lulc_raster_filepath, ref_et_raster_filepaths,
 
     # get the intersection mask
     with rio.open(dst_lulc_raster_filepath) as src:
-        mask = src.dataset_mask()
+        meta = src.meta.copy()
+        data_mask = src.dataset_mask()
     for dst_raster_filepath in dst_ref_et_raster_filepaths + \
             dst_t_raster_filepaths:
         with rio.open(dst_raster_filepath) as src:
-            mask &= src.dataset_mask()
+            data_mask &= src.dataset_mask()
 
     for dst_raster_filepath in [dst_lulc_raster_filepath] + \
             dst_ref_et_raster_filepaths + dst_t_raster_filepaths:
         with rio.open(dst_raster_filepath, 'r+') as ds:
             ds.write(
-                np.where(mask, ds.read(1), ds.nodata).astype(ds.dtypes[0]), 1)
+                np.where(data_mask, ds.read(1),
+                         ds.nodata).astype(ds.dtypes[0]), 1)
 
-    return (dst_lulc_raster_filepath, dst_ref_et_raster_filepaths,
-            dst_t_raster_filepaths)
+    return (meta, data_mask, dst_lulc_raster_filepath,
+            dst_ref_et_raster_filepaths, dst_t_raster_filepaths)
 
 
 def _preprocess_t_rasters(t_raster_filepaths):
@@ -178,25 +180,21 @@ class UCMWrapper:
         # self.workspace_dir = workspace_dir
         # self.base_args.update()
 
-        # get the raster metadata from lulc (used to predict air temperature
-        # rasters)
-        with rio.open(lulc_raster_filepath) as src:
-            self.meta = src.meta.copy()
-            self.data_mask = src.dataset_mask().astype(bool)
-
         # evapotranspiration rasters for each date
         if isinstance(ref_et_raster_filepaths, str):
             ref_et_raster_filepaths = [ref_et_raster_filepaths]
+
+        # get the raster metadata from lulc (used to predict air temperature
+        # rasters)
+        with rio.open(lulc_raster_filepath) as src:
+            meta = src.meta.copy()
+            data_mask = src.dataset_mask().astype(bool)
 
         # calibration approaches
         if t_raster_filepaths is not None:
             # calibrate against a map
             if isinstance(t_raster_filepaths, str):
                 t_raster_filepaths = [t_raster_filepaths]
-
-            # dates of the observed temperature rasters
-            if isinstance(dates, str):
-                dates = [dates]
 
             if align_rasters:
                 # a list is needed for the `_align_rasters` method
@@ -218,11 +216,17 @@ class UCMWrapper:
                 # the call below returns the same `dst_lulc_raster_filepath`
                 # `dst_ref_et_raster_filepaths` and `dst_t_raster_filepaths`
                 # passed as args
-                lulc_raster_filepath, ref_et_raster_filepaths, \
-                    t_raster_filepaths = _align_rasters(
-                        lulc_raster_filepath, ref_et_raster_filepaths,
-                        t_raster_filepaths, dst_lulc_raster_filepath,
-                        dst_ref_et_raster_filepaths, dst_t_raster_filepaths)
+                (meta, data_mask, lulc_raster_filepath,
+                 ref_et_raster_filepaths, t_raster_filepaths) = _align_rasters(
+                     lulc_raster_filepath, ref_et_raster_filepaths,
+                     t_raster_filepaths, dst_lulc_raster_filepath,
+                     dst_ref_et_raster_filepaths, dst_t_raster_filepaths)
+
+            # attributes to index the samples
+            if isinstance(dates, str):
+                dates = [dates]
+            sample_index = np.arange(data_mask.sum())
+            sample_keys = data_mask
 
             # Tref and UHImax
             if t_refs is None:
@@ -251,17 +255,15 @@ class UCMWrapper:
         elif station_t_filepath is not None:
             station_location_df = pd.read_csv(station_locations_filepath,
                                               index_col=0)
-            # get the row/cols indices of the station locations in the
-            # temperature rasters
-            self.station_rows, self.station_cols = transform.rowcol(
-                self.meta['transform'], station_location_df['x'],
-                station_location_df['y'])
-
             station_t_df = pd.read_csv(station_t_filepath,
                                        index_col=0)[station_location_df.index]
             station_t_df.index = pd.to_datetime(station_t_df.index)
+            # attributes to index the samples
             dates = station_t_df.index
-            self.station_tair_df = station_t_df
+            sample_index = station_t_df.columns
+            sample_keys = transform.rowcol(meta['transform'],
+                                           station_location_df['x'],
+                                           station_location_df['y'])
 
             # tref and uhi max
             if t_refs is None:
@@ -279,8 +281,10 @@ class UCMWrapper:
             # use the wrapper to run the model
             self._predict_t = self.predict_t_arr
             # this is useful in this same method (see below)
-            obs_arr = None
             dates = None
+            sample_index = None
+            sample_keys = None
+            obs_arr = None
 
         # create a dummy geojson with the bounding box extent for the area of
         # interest - this is completely ignored during the calibration
@@ -302,8 +306,12 @@ class UCMWrapper:
                     },
                 })
 
-        # store the dates as class attributes
+        # store the attributes to index the samples
+        self.meta = meta
+        self.data_mask = data_mask
         self.dates = dates
+        self.sample_index = sample_index
+        self.sample_keys = sample_keys
 
         # store reference temperatures and UHI magnitudes as class attributes
         if not _is_sequence(t_refs):
@@ -511,12 +519,11 @@ class UCMWrapper:
             observed and predicted values
         """
 
-        tair_pred_df = pd.DataFrame(index=self.station_tair_df.columns)
+        tair_pred_df = pd.DataFrame(index=self.sample_index)
 
         T_da = self.predict_t_da(ucm_args=ucm_args)
         for date, date_da in T_da.groupby('time'):
-            tair_pred_df[date] = date_da.values[self.station_rows,
-                                                self.station_cols]
+            tair_pred_df[date] = date_da.values[self.sample_keys]
         tair_pred_df = tair_pred_df.transpose()
 
         # comparison_df['err'] = comparison_df['pred'] - comparison_df['obs']
