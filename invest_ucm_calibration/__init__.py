@@ -397,7 +397,7 @@ class UCMWrapper:
         -------
         t_arr : np.ndarray
             Predicted temperature array aligned with the LULC raster for the
-            selected date 
+            selected date
         """
 
         args = self.base_args.copy()
