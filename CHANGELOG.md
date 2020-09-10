@@ -1,5 +1,10 @@
 # Change log
 
+## 0.4.0 (10/09/2020)
+
+* dropped `predict_t` method (replaced by `predict_t_arrs`)
+* use sample name, index and keys attributes to index the samples
+
 ## 0.3.3 (18/08/2020)
 
 * corrected `obs_arr` and `dates` in `UCMWrapper.__init__` and test that certain functionalities can work without providing observed temperature values
