@@ -424,13 +424,9 @@ class UCMWrapper:
             # return src.read(1, **read_kws)
             return src.read(1)
 
-    def predict_t(self, ucm_args=None):
+    def predict_t_arrs(self, ucm_args=None):
         """
-        Predict the temperatures for the observation samples for all the
-        calibration dates. By default, the samples correspond either to an
-        array aligned with the LULC raster. If the object is instantiated with
-        a table of air temperature measurements (i.e., the `station_t_filepath`
-        argument), a list of station locations.
+        Predict the temperatures arrays for all the calibration dates.
 
         Parameters
         ----------
@@ -442,8 +438,8 @@ class UCMWrapper:
 
         Returns
         -------
-        t : np.ndarray
-            Predicted temperature samples for each date
+        t : list of np.ndarray
+            Predicted temperature arrays for each date
         """
         # we could also iterate over `self.t_refs` or `self.uhi_maxs`
         pred_delayed = [
@@ -451,7 +447,7 @@ class UCMWrapper:
             for i in range(len(self.ref_et_raster_filepaths))
         ]
 
-        return np.hstack(
+        return list(
             dask.compute(*pred_delayed, scheduler='processes',
                          num_workers=self.num_workers))
 
@@ -474,13 +470,7 @@ class UCMWrapper:
             Predicted temperature data array aligned with the LULC raster
         """
 
-        pred_delayed = [
-            dask.delayed(self.predict_t_arr)(i, ucm_args)
-            for i in range(len(self.ref_et_raster_filepaths))
-        ]
-        t_arrs = list(
-            dask.compute(*pred_delayed, scheduler='processes',
-                         num_workers=self.num_workers))
+        t_arrs = self.predict_t_arrs(ucm_args=ucm_args)
 
         if self.dates is None:
             dates = np.arange(len(self.ref_et_raster_filepaths))
@@ -794,8 +784,8 @@ class UCMCalibrator(simanneal.Annealer):
 
     def energy(self):
         ucm_args = self._ucm_params_dict.copy()
-        pred_arr = self.ucm_wrapper.predict_t(
-            ucm_args=ucm_args).flatten()[self.ucm_wrapper.sample_keys]
+        pred_arr = np.hstack(self.ucm_wrapper.predict_t_arrs(
+            ucm_args=ucm_args)).flatten()[self.ucm_wrapper.sample_keys]
 
         return self.compute_metric(self.ucm_wrapper.obs_arr,
                                    pred_arr[self.ucm_wrapper.obs_mask])
@@ -843,32 +833,28 @@ class UCMCalibrator(simanneal.Annealer):
 
     # shortcuts to useful `UCMWrapper` methods
     # TODO: dry `ucm_args` with a decorator?
-    def predict_t(self, ucm_args=None):
-        """
-        Predict the temperatures for the observation samples for all the
-        calibration dates. By default, the samples correspond either to an
-        array aligned with the LULC raster. If the object is instantiated with
-        a table of air temperature measurements (i.e., the `station_t_filepath`
-        argument), a list of station locations.
+    def predict_t_arrs(self, ucm_args=None):
+        """        
+        Predict the temperatures arrays for all the calibration dates.
 
         Parameters
         ----------
         ucm_args : dict-like, optional
             Custom keyword arguments to be passed to the `execute` method of
             the urban cooling model. The provided keys will override those set
-            in the current solution found by the calibrator, i.e., the `state`
-            attribute.
+            in the `base_args` attribute of this class (set up in the
+            initialization method).
 
         Returns
         -------
         t : np.ndarray
-            Predicted temperature samples for each date
+            Predicted temperature arrays for each date
         """
 
         if ucm_args is None:
             ucm_args = self._ucm_params_dict.copy()
 
-        return self.ucm_wrapper.predict_t(ucm_args=ucm_args)
+        return self.ucm_wrapper.predict_t_arrs(ucm_args=ucm_args)
 
     def predict_t_da(self, ucm_args=None):
         """
