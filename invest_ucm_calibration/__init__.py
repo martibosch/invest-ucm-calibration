@@ -80,11 +80,15 @@ def _preprocess_t_rasters(t_raster_filepaths):
     return obs_arrs, t_refs, uhi_maxs
 
 
+def _r2_score(obs, pred):
+    slope, intercept, r_value, p_value, std_err = stats.linregress(obs, pred)
+    return r_value * r_value
+
+
 def _inverted_r2_score(obs, pred):
     # since we need to maximize (instead of minimize) the r2, the
     # simulated annealing will actually minimize 1 - R^2
-    slope, intercept, r_value, p_value, std_err = stats.linregress(obs, pred)
-    return 1 - r_value * r_value
+    return 1 - _r2_score(obs, pred)
 
 
 METRIC_COLUMNS = ['R^2', 'MAE', 'RMSE']
@@ -92,7 +96,7 @@ METRIC_COLUMNS = ['R^2', 'MAE', 'RMSE']
 
 def _compute_model_perf(obs, pred):
     return [
-        metrics.r2_score(obs, pred),
+        _r2_score(obs, pred),
         metrics.mean_absolute_error(obs, pred),
         metrics.mean_squared_error(obs, pred, squared=False),
     ]
