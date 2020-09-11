@@ -1,5 +1,9 @@
 # Change log
 
+## 0.4.1 (11/09/2020)
+
+* compute r2 score with scipy.stats to avoid negative values
+
 ## 0.4.0 (10/09/2020)
 
 * dropped `predict_t` method (replaced by `predict_t_arrs`)
