@@ -49,8 +49,9 @@ We can calibrate the model to best-fit the station measurements of `station-t-on
     $ invest-ucm-calibration lulc.tif biophysical-table.csv factors \
                 --ref-et-raster-filepaths ref_et0.tif \
                 --station-t-filepath station-t-one-day.csv \
-                --station-locations station-locations.csv --num-steps 10 \
-                --num-update-logs 10 --dst-filepath calibrated-params.json
+                --station-locations-filepath station-locations.csv \
+                --num-steps 10 --num-update-logs 10 \
+                --dst-filepath calibrated-params.json
 
 which will dump the calibrated parameters to `calibrated-params.json`.
 
@@ -74,8 +75,9 @@ Similarly, if we have the station measurements for the two days of `ref_et0.tif`
     $ invest-ucm-calibration lulc.tif biophysical-table.csv factors \
                 --ref-et-raster-filepaths ref_et0.tif ref_et1.tif \
                 --station-t-filepath station-t.csv \
-                --station-locations station-locations.csv --num-steps 10 \
-                --num-update-logs 10 --dst-filepath calibrated-params.json
+                --station-location-filepaths station-locations.csv \
+                --num-steps 10 --num-update-logs 10 \
+                --dst-filepath calibrated-params.json
 
 ----------------------------------------------------------
 Providing custom reference temperatures and UHI magnitudes
