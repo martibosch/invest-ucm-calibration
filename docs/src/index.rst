@@ -3,6 +3,8 @@ InVEST urban cooling model calibration documentation
 
 Automated calibration of the InVEST urban cooling model with simulated annealing.
 
+**Citation**: Bosch, M., Locatelli, M., Hamel, P., Remme, R. P., Chenal, J., and Joost, S. 2021. "A spatially-explicit approach to simulate urban heat mitigation with InVEST (v3.8.0)". *Geoscientific Model Development 14(6), 3521-3537*. `doi.org/10.5194/gmd-14-3521-2021 <https://doi.org/10.5194/gmd-14-3521-2021`_
+
 .. toctree::
    :maxdepth: 1
    :caption: User guide:
