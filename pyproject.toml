@@ -65,7 +65,8 @@ doc = [
     "sphinx", "sphinx-click", "myst-parser"
     ]
 
-
+[tool.poetry.scripts]
+invest-ucm-calibration = 'invest_ucm_calibration.cli.main:cli'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

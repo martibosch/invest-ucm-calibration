@@ -383,10 +383,12 @@ class UCMWrapper:
 
         if extra_ucm_args is None:
             extra_ucm_args = settings.DEFAULT_EXTRA_UCM_ARGS
-        if "do_valuation" not in extra_ucm_args:
-            extra_ucm_args["do_valuation"] = settings.DEFAULT_EXTRA_UCM_ARGS[
-                "do_valuation"
-            ]
+        # if the user provides custom `extra_ucm_args`, check that the required args are set
+        for extra_ucm_arg in settings.DEFAULT_EXTRA_UCM_ARGS:
+            if extra_ucm_arg not in extra_ucm_args:
+                extra_ucm_args[extra_ucm_arg] = settings.DEFAULT_EXTRA_UCM_ARGS[
+                    extra_ucm_arg
+                ]
         self.base_args.update(**extra_ucm_args)
         # also store the paths to the evapotranspiration rasters
         self.ref_et_raster_filepaths = ref_et_raster_filepaths

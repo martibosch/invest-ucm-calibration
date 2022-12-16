@@ -6,7 +6,10 @@ DEFAULT_UCM_PARAMS = {
     "cc_weight_albedo": 0.2,
     "cc_weight_eti": 0.2,
 }
-DEFAULT_EXTRA_UCM_ARGS = {"do_valuation": False}
+DEFAULT_EXTRA_UCM_ARGS = {
+    "do_energy_valuation": False,
+    "do_productivity_valuation": False,
+}
 
 DEFAULT_METRIC = "R2"
 DEFAULT_STEPSIZE = 0.3
