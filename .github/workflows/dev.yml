@@ -54,6 +54,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-versions }}
 
+      - name: run pre-commit
+        uses: pre-commit/action@v3
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip

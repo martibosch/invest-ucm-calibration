@@ -1,6 +1,6 @@
-* InVEST UCM calibration version:
-* Python version:
-* Operating System:
+- InVEST UCM calibration version:
+- Python version:
+- Operating System:
 
 ### Description
 

@@ -4,7 +4,6 @@
 
 First of all, install the `invest-ucm-calibration` library following the instructions of the index of this documentation.
 
-
 Then, in order to have some data that we can work on, let us first clone the repository:
 
 ```bash
@@ -18,7 +17,7 @@ cd invest-ucm-calibration/tests/data
 ```
 
 Note that we have temperature and reference evapotranspiration data for two days, noted respectively with a 0 and 1 at the end of the file names. Also note that since we are using toy data, the number of calibration steps will be set to 10 in all the examples below (and the number of updates for which we log the process is also set to 10, so that we log every calibration step). Nonetheless, proper calibration in real settings will most likely require more calibration steps (the default is set to 100 calibration steps).
-    
+
 ## Calibration with a temperature map
 
 We can calibrate the model to best-fit the temperature map of `T0.tif` as in:
@@ -79,4 +78,3 @@ invest-ucm-calibration lulc.tif biophysical-table.csv factors \
 	--uhi-maxs 5 6 --t-raster-filepaths T0.tif T1.tif --num-steps 10 \
 	--num-update-logs 10 --dst-filepath calibrated-params.json# Usage
 ```
-

@@ -1,33 +1,42 @@
 repos:
--   repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.1.13
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.0.1
     hooks:
-    -   id: forbid-crlf
-    -   id: remove-crlf
-    -   id: forbid-tabs
-        exclude_types: [csv]
-    -   id: remove-tabs
-        exclude_types: [csv]
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v2.37.0
     hooks:
-    - id: trailing-whitespace
-    - id: end-of-file-fixer
-    - id: check-merge-conflict
-    - id: check-yaml
-      args: [--unsafe]
--   repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.10.1
+      - id: commitizen
+
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.14 # Use the ref you want to point at
     hooks:
-    - id: isort
--   repo: https://github.com/ambv/black
-    rev: 22.3.0
+      - id: mdformat
+        # Optionally add plugins
+        additional_dependencies:
+          - mdformat-gfm
+          - mdformat-black
+
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.18.4
     hooks:
-    - id: black
-      language_version: python3.8
--   repo: https://gitlab.com/pycqa/flake8
-    rev: 3.9.2
+      - id: check-github-workflows
+
+  - repo: https://github.com/psf/black
+    rev: 22.6.0
     hooks:
-    -   id: flake8
-        additional_dependencies: [flake8-typing-imports==1.10.0]
-        exclude: ^tests
+      - id: black
+
+  - repo: https://github.com/timothycrosley/isort
+    rev: 5.10.0
+    hooks:
+      - id: isort
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 4.0.0
+    hooks:
+      - id: flake8
+        additional_dependencies: [flake8-isort, flake8-docstrings]
