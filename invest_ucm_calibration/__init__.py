@@ -336,7 +336,7 @@ class UCMWrapper:
                 aoi_vector_filepath,
                 "w",
                 driver="GeoJSON",
-                crs=src.crs,
+                crs=src.crs.to_string(),
                 schema={"geometry": "Polygon", "properties": {"id": "int"}},
             ) as c:
                 c.write(
