@@ -38,13 +38,6 @@ install_reqs = read_reqs(path.join(here, "requirements.txt"))
 dev_reqs = read_reqs(path.join(here, "requirements-dev.txt"))
 docs_reqs = read_reqs(path.join(here, "docs", "requirements.txt"))
 
-# See https://github.com/readthedocs/readthedocs.org/issues/5512
-on_rtd = environ.get("READTHEDOCS") == "True"
-if on_rtd:
-    install_requires = ["click"]
-else:
-    install_requires = [x.strip() for x in install_reqs if "git+" not in x]
-
 dependency_links = [
     x.strip().replace("git+", "") for x in install_reqs if x.startswith("git+")
 ]
@@ -65,8 +58,8 @@ setup(
     install_requires=install_reqs,
     dependency_links=dependency_links,
     entry_points={
-        'console_scripts': [
-            'invest-ucm-calibration=invest_ucm_calibration.cli.main:cli',
+        "console_scripts": [
+		    "invest-ucm-calibration=invest_ucm_calibration.cli.main:main",
         ],
     },
     extras_require={"dev": dev_reqs, "docs": docs_reqs},

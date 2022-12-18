@@ -1,5 +1,5 @@
-click
 dask[delayed]
+fire
 fiona>=1.0.0
 natcap-invest>=3.10.1
 rasterio>=1.0.0
