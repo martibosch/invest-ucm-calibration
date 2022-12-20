@@ -304,7 +304,7 @@ class TestIUC(unittest.TestCase):
         # if not providing `station_t_filepath` and providing the `dates` arg,
         # the `dates` attribute is taken from there (although converted to a
         # list of one element only)
-        self.assertEquals(
+        self.assertEqual(
             iuc.UCMCalibrator(
                 self.lulc_raster_filepath,
                 self.biophysical_table_filepath,
