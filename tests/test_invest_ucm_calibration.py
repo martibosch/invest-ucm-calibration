@@ -476,7 +476,8 @@ class TestCLI(unittest.TestCase):
                 "1",
                 "--dst-filepath",
                 path.join(self.workspace_dir, "foo.json"),
-            ])
+            ]
+        )
         self.assertEqual(result.returncode, 0)
 
         # test that unaligned rasters need to be aligned
@@ -501,7 +502,8 @@ class TestCLI(unittest.TestCase):
                 "1",
                 "--dst-filepath",
                 path.join(self.workspace_dir, "foo.json"),
-            ])
+            ]
+        )
         self.assertNotEqual(result.returncode, 0)
 
         # test the `dates` arg
@@ -527,7 +529,8 @@ class TestCLI(unittest.TestCase):
                 "1",
                 "--dst-filepath",
                 path.join(self.workspace_dir, "foo.json"),
-            ])
+            ]
+        )
         self.assertEqual(result.returncode, 0)
 
         # calibrate with measurements
