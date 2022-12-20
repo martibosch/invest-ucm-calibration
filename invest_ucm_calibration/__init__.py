@@ -527,7 +527,7 @@ class UCMWrapper:
             name="T",
             attrs={"pyproj_srs": self.meta["crs"].to_proj4()},
         )
-        return t_da.groupby("time").apply(lambda x: x.where(self.data_mask, np.nan))
+        return t_da.groupby("time").map(lambda x: x.where(self.data_mask, np.nan))
 
     def get_sample_comparison_df(self, ucm_args=None):
         """
