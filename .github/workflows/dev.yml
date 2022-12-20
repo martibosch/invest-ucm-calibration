@@ -55,7 +55,7 @@ jobs:
           python-version: ${{ matrix.python-versions }}
 
       - name: run pre-commit
-        uses: pre-commit/action@v3
+        uses: pre-commit/action@v3.0.0
 
       - name: Install dependencies
         run: |
