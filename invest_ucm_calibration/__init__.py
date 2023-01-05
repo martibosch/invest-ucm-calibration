@@ -12,7 +12,8 @@ import rasterio as rio
 import simanneal
 import xarray as xr
 from natcap.invest import urban_cooling_model as ucm
-from rasterio import transform
+from rasterio import transform, warp
+from rasterio.warp import Resampling
 from scipy import stats
 from shapely import geometry
 from sklearn import metrics
@@ -30,65 +31,56 @@ def _is_sequence(arg):
     return hasattr(arg, "__getitem__") or hasattr(arg, "__iter__")
 
 
-def _align_rasters(
-    lulc_raster_filepath,
-    ref_et_raster_filepaths,
-    t_raster_filepaths,
-    dst_lulc_raster_filepath,
-    dst_ref_et_raster_filepaths,
-    dst_t_raster_filepaths,
-):
-    with rio.open(lulc_raster_filepath) as src:
-        pygeoprocessing.align_and_resize_raster_stack(
-            [lulc_raster_filepath] + ref_et_raster_filepaths + t_raster_filepaths,
-            [dst_lulc_raster_filepath]
-            + dst_ref_et_raster_filepaths
-            + dst_t_raster_filepaths,
-            ["near"]
-            + ["bilinear"] * (len(ref_et_raster_filepaths) + len(t_raster_filepaths)),
-            src.res,
-            "intersection",
-        )
+def _preprocess_t_rasters(t_raster_filepaths, dst_meta, resampling=None):
+    # get dst raster info (constant) outside the loop
+    dst_shape = (dst_meta["height"], dst_meta["width"])
+    dst_transform = dst_meta["transform"]
+    dst_crs = dst_meta["crs"]
+    if resampling is None:
+        resampling = Resampling.bilinear
 
-    # get the intersection mask
-    with rio.open(dst_lulc_raster_filepath) as src:
-        meta = src.meta.copy()
-        data_mask = src.dataset_mask()
-    for dst_raster_filepath in dst_ref_et_raster_filepaths + dst_t_raster_filepaths:
-        with rio.open(dst_raster_filepath) as src:
-            data_mask &= src.dataset_mask()
-
-    for dst_raster_filepath in (
-        [dst_lulc_raster_filepath]
-        + dst_ref_et_raster_filepaths
-        + dst_t_raster_filepaths
-    ):
-        with rio.open(dst_raster_filepath, "r+") as ds:
-            ds.write(np.where(data_mask, ds.read(1), ds.nodata).astype(ds.dtypes[0]), 1)
-
-    return (
-        meta,
-        data_mask.astype(bool),
-        dst_lulc_raster_filepath,
-        dst_ref_et_raster_filepaths,
-        dst_t_raster_filepaths,
-    )
-
-
-def _preprocess_t_rasters(t_raster_filepaths):
+    # init empty arrays
     obs_arrs = []
     t_refs = []
     uhi_maxs = []
     for t_raster_filepath in t_raster_filepaths:
         with rio.open(t_raster_filepath) as src:
-            t_arr = src.read(1)
-            # use `np.nan` for nodata values to ensure that we get the right
-            # min/max values with `np.nanmin`/`np.nanmax`
-            t_arr = np.where(src.dataset_mask(), t_arr, np.nan)
-            obs_arrs.append(t_arr)
-            t_min = np.nanmin(t_arr)
-            t_refs.append(t_min)
-            uhi_maxs.append(np.nanmax(t_arr) - t_min)
+            dst_arr = np.full(dst_shape, src.nodata, dtype=src.dtypes[0])
+            src_mask = src.dataset_mask()
+            dst_mask = np.zeros(dst_shape, dtype=src_mask.dtype)
+            # by default, when reprojecting with a source rasterio dataset and a
+            # destination array, the source nodata and destination nodata are set to
+            # src.nodata, so we do not need to handle it
+            warp.reproject(
+                source=src.read(1),
+                destination=dst_arr,
+                src_transform=src.transform,
+                src_crs=src.crs,
+                src_nodata=src.nodata,
+                dst_transform=dst_transform,
+                dst_crs=dst_crs,
+                dst_nodata=src.nodata,
+                resampling=resampling,
+            )
+
+            warp.reproject(
+                source=src_mask,
+                destination=dst_mask,
+                src_transform=src.transform,
+                src_crs=src.crs,
+                dst_transform=dst_transform,
+                dst_crs=dst_crs,
+                resampling=Resampling.nearest,
+            )
+
+        # t_arr = src.read(1)
+        # use `np.nan` for nodata values to ensure that we get the right min/max values
+        # with `np.nanmin`/`np.nanmax`
+        t_arr = np.where(dst_mask, dst_arr, np.nan)
+        obs_arrs.append(t_arr)
+        t_min = np.nanmin(t_arr)
+        t_refs.append(t_min)
+        uhi_maxs.append(np.nanmax(t_arr) - t_min)
 
     return obs_arrs, t_refs, uhi_maxs
 
@@ -129,7 +121,6 @@ class UCMWrapper:
         station_t_filepath=None,
         station_locations_filepath=None,
         dates=None,
-        align_rasters=True,
         workspace_dir=None,
         extra_ucm_args=None,
         num_workers=None,
@@ -182,12 +173,6 @@ class UCMWrapper:
             Date or list of dates that correspond to each of the observed
             temperature raster provided in `t_raster_filepaths`. Ignored if
             `station_t_filepath` is provided.
-        align_rasters : bool, default True
-            Whether the rasters should be aligned before passing them as
-            arguments of the InVEST urban cooling model. Since the model
-            already aligns the LULC and reference evapotranspiration rasters,
-            this argument is only useful to align the temperature rasters, and
-            is therefore ignored if calibrating against station measurements.
         workspace_dir : str, optional
             Path to the folder where the model outputs will be written. If not
             provided, a temporary directory will be used.
@@ -201,6 +186,8 @@ class UCMWrapper:
             number of dates and available number of processors in the CPU.
         """
 
+        # 1. prepare base args
+        # 1.1. workspace dir
         if workspace_dir is None:
             # TODO: how do we ensure that this is removed?
             workspace_dir = tempfile.mkdtemp()
@@ -208,15 +195,83 @@ class UCMWrapper:
         # self.workspace_dir = workspace_dir
         # self.base_args.update()
 
+        # 1.2. area of interest vector
+        # create a dummy geojson with the bounding box extent for the area of
+        # interest - this is completely ignored during the calibration
+        aoi_vector_filepath = path.join(workspace_dir, "dummy_aoi.geojson")
+        with rio.open(lulc_raster_filepath) as src:
+            # geom = geometry.box(*src.bounds)
+            with fiona.open(
+                aoi_vector_filepath,
+                "w",
+                driver="GeoJSON",
+                crs=src.crs.to_string(),
+                schema={"geometry": "Polygon", "properties": {"id": "int"}},
+            ) as c:
+                c.write(
+                    {
+                        "geometry": geometry.mapping(geometry.box(*src.bounds)),
+                        "properties": {"id": 1},
+                    }
+                )
+
+        # 1.3. set base args dict as instance attribute
+        # model parameters: prepare the dict here so that all the paths/
+        # parameters have been properly set above
+        self.base_args = {
+            "lulc_raster_path": lulc_raster_filepath,
+            "biophysical_table_path": biophysical_table_filepath,
+            "aoi_vector_path": aoi_vector_filepath,
+            "cc_method": cc_method,
+            "workspace_dir": workspace_dir,
+        }
+        # if model_params is None:
+        #     model_params = DEFAULT_MODEL_PARAMS
+        self.base_args.update(**settings.DEFAULT_UCM_PARAMS)
+
+        if extra_ucm_args is None:
+            extra_ucm_args = settings.DEFAULT_EXTRA_UCM_ARGS
+        # if the user provides custom `extra_ucm_args`, check that the required args are set
+        for extra_ucm_arg in settings.DEFAULT_EXTRA_UCM_ARGS:
+            if extra_ucm_arg not in extra_ucm_args:
+                extra_ucm_args[extra_ucm_arg] = settings.DEFAULT_EXTRA_UCM_ARGS[
+                    extra_ucm_arg
+                ]
+        self.base_args.update(**extra_ucm_args)
+
+        # 2. evapotranspiration rasters
         # evapotranspiration rasters for each date
         if isinstance(ref_et_raster_filepaths, str):
             ref_et_raster_filepaths = [ref_et_raster_filepaths]
 
+        # also store the paths to the evapotranspiration rasters
+        self.ref_et_raster_filepaths = ref_et_raster_filepaths
+
+        # 3. raster metadata
         # get the raster metadata from lulc (used to predict air temperature
         # rasters)
-        with rio.open(lulc_raster_filepath) as src:
-            meta = src.meta.copy()
-            data_mask = src.dataset_mask().astype(bool)
+        # with rio.open(lulc_raster_filepath) as src:
+        #     meta = src.meta.copy()
+        #     data_mask = src.dataset_mask().astype(bool)
+        # run the model once in a temporary directory so that we get the raster metadata
+        # from the run's outputs. This way we do not need to duplicate their raster
+        # alignment procedure in our code.
+        args = self.base_args.copy()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            args.update(
+                workspace_dir=tmp_dir,
+                ref_eto_raster_path=ref_et_raster_filepaths[0],
+                t_ref=0,
+                uhi_max=1,
+            )
+            ucm.execute(args)
+
+            with rio.open(
+                path.join(args["workspace_dir"], "intermediate", "T_air.tif")
+            ) as src:
+                # return src.read(1, **read_kws)
+                meta = src.meta.copy()
+                data_mask = src.dataset_mask().astype(bool)
 
         # calibration approaches
         if t_raster_filepaths is not None:
@@ -224,54 +279,23 @@ class UCMWrapper:
             if isinstance(t_raster_filepaths, str):
                 t_raster_filepaths = [t_raster_filepaths]
 
-            if align_rasters:
-                # a list is needed for the `_align_rasters` method
-                if isinstance(ref_et_raster_filepaths, tuple):
-                    ref_et_raster_filepaths = list(ref_et_raster_filepaths)
-                if isinstance(t_raster_filepaths, tuple):
-                    t_raster_filepaths = list(t_raster_filepaths)
-                # align the rasters to the LULC raster and dump them to new
-                # paths in the workspace directory
-                dst_lulc_raster_filepath = path.join(workspace_dir, "lulc.tif")
-                dst_ref_et_raster_filepaths = [
-                    path.join(workspace_dir, f"ref-et_{i}.tif")
-                    for i in range(len(t_raster_filepaths))
-                ]
-                dst_t_raster_filepaths = [
-                    path.join(workspace_dir, f"t_{i}.tif")
-                    for i in range(len(t_raster_filepaths))
-                ]
-                # the call below returns the same `dst_lulc_raster_filepath`
-                # `dst_ref_et_raster_filepaths` and `dst_t_raster_filepaths`
-                # passed as args
-                (
-                    meta,
-                    data_mask,
-                    lulc_raster_filepath,
-                    ref_et_raster_filepaths,
-                    t_raster_filepaths,
-                ) = _align_rasters(
-                    lulc_raster_filepath,
-                    ref_et_raster_filepaths,
-                    t_raster_filepaths,
-                    dst_lulc_raster_filepath,
-                    dst_ref_et_raster_filepaths,
-                    dst_t_raster_filepaths,
-                )
-
             # observed values array, Tref and UHImax
             if t_refs is None:
                 if uhi_maxs is None:
                     obs_arrs, t_refs, uhi_maxs = _preprocess_t_rasters(
-                        t_raster_filepaths
+                        t_raster_filepaths, meta
                     )
                 else:
-                    obs_arrs, t_refs, _ = _preprocess_t_rasters(t_raster_filepaths)
+                    obs_arrs, t_refs, _ = _preprocess_t_rasters(
+                        t_raster_filepaths, meta
+                    )
             else:
                 if uhi_maxs is None:
-                    obs_arrs, _, uhi_maxs = _preprocess_t_rasters(t_raster_filepaths)
+                    obs_arrs, _, uhi_maxs = _preprocess_t_rasters(
+                        t_raster_filepaths, meta
+                    )
                 else:
-                    obs_arrs, _, __ = _preprocess_t_rasters(t_raster_filepaths)
+                    obs_arrs, _, __ = _preprocess_t_rasters(t_raster_filepaths, meta)
             # need to replace nodata with `nan` so that `dropna` works below
             # the `_preprocess_t_rasters` method already uses `np.where` to
             # that end, however the `data_mask` used here might be different
@@ -327,25 +351,6 @@ class UCMWrapper:
             sample_keys = None
             obs_arr = None
 
-        # create a dummy geojson with the bounding box extent for the area of
-        # interest - this is completely ignored during the calibration
-        aoi_vector_filepath = path.join(workspace_dir, "dummy_aoi.geojson")
-        with rio.open(lulc_raster_filepath) as src:
-            # geom = geometry.box(*src.bounds)
-            with fiona.open(
-                aoi_vector_filepath,
-                "w",
-                driver="GeoJSON",
-                crs=src.crs.to_string(),
-                schema={"geometry": "Polygon", "properties": {"id": "int"}},
-            ) as c:
-                c.write(
-                    {
-                        "geometry": geometry.mapping(geometry.box(*src.bounds)),
-                        "properties": {"id": 1},
-                    }
-                )
-
         # store the attributes to index the samples
         self.meta = meta
         self.data_mask = data_mask
@@ -367,31 +372,6 @@ class UCMWrapper:
             self.obs_arr = obs_arr.flatten()
             self.obs_mask = ~np.isnan(self.obs_arr)
             self.obs_arr = self.obs_arr[self.obs_mask]
-
-        # model parameters: prepare the dict here so that all the paths/
-        # parameters have been properly set above
-        self.base_args = {
-            "lulc_raster_path": lulc_raster_filepath,
-            "biophysical_table_path": biophysical_table_filepath,
-            "aoi_vector_path": aoi_vector_filepath,
-            "cc_method": cc_method,
-            "workspace_dir": workspace_dir,
-        }
-        # if model_params is None:
-        #     model_params = DEFAULT_MODEL_PARAMS
-        self.base_args.update(**settings.DEFAULT_UCM_PARAMS)
-
-        if extra_ucm_args is None:
-            extra_ucm_args = settings.DEFAULT_EXTRA_UCM_ARGS
-        # if the user provides custom `extra_ucm_args`, check that the required args are set
-        for extra_ucm_arg in settings.DEFAULT_EXTRA_UCM_ARGS:
-            if extra_ucm_arg not in extra_ucm_args:
-                extra_ucm_args[extra_ucm_arg] = settings.DEFAULT_EXTRA_UCM_ARGS[
-                    extra_ucm_arg
-                ]
-        self.base_args.update(**extra_ucm_args)
-        # also store the paths to the evapotranspiration rasters
-        self.ref_et_raster_filepaths = ref_et_raster_filepaths
 
         # number of workers to perform each calibration iteration at scale
         if num_workers is None:
@@ -651,7 +631,6 @@ class UCMCalibrator(simanneal.Annealer):
         station_t_filepath=None,
         station_locations_filepath=None,
         dates=None,
-        align_rasters=True,
         workspace_dir=None,
         initial_solution=None,
         extra_ucm_args=None,
@@ -707,12 +686,6 @@ class UCMCalibrator(simanneal.Annealer):
             Date or list of dates that correspond to each of the observed
             temperature raster provided in `t_raster_filepaths`. Ignored if
             `station_t_filepath` is provided.
-        align_rasters : bool, default True
-            Whether the rasters should be aligned before passing them as
-            arguments of the InVEST urban cooling model. Since the model
-            already aligns the LULC and reference evapotranspiration rasters,
-            this argument is only useful to align the temperature rasters, and
-            is therefore ignored if calibrating against station measurements.
         workspace_dir : str, optional
             Path to the folder where the model outputs will be written. If not
             provided, a temporary directory will be used.
@@ -770,7 +743,6 @@ class UCMCalibrator(simanneal.Annealer):
             station_t_filepath=station_t_filepath,
             station_locations_filepath=station_locations_filepath,
             dates=dates,
-            align_rasters=align_rasters,
             workspace_dir=workspace_dir,
             extra_ucm_args=extra_ucm_args,
             num_workers=num_workers,
