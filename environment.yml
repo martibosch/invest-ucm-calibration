@@ -6,4 +6,5 @@ channels:
 dependencies:
   - gdal>=3.4.2
   - python>=3.8,<3.11
+  - tox=3
   - tox-conda
