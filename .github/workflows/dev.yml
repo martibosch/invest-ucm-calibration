@@ -16,8 +16,7 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  test:
+  tests:
     # The type of runner that the job will run on
     strategy:
       matrix:
@@ -62,3 +61,25 @@ jobs:
       - uses: codecov/codecov-action@v3
         with:
           fail_ci_if_error: true
+
+      - name: Cache dist directory
+        uses: actions/cache@v2
+        with:
+          path: dist
+          key: dist-${{ hashFiles('dist/*') }}
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: tests
+    steps:
+      - name: Restore dist directory from cache
+        uses: actions/cache@v2
+        with:
+          path: dist
+          key: dist-${{ hashFiles('dist/*') }}
+
+      - name: publish package to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
