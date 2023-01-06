@@ -22,13 +22,6 @@ jobs:
       matrix:
         python-versions: ['3.9']
 
-    # map step outputs to job outputs so they can be share among jobs
-    outputs:
-      package_version: ${{ steps.variables_step.outputs.package_version }}
-      package_name: ${{ steps.variables_step.outputs.package_name }}
-      repo_name: ${{ steps.variables_step.outputs.repo_name }}
-      repo_owner: ${{ steps.variables_step.outputs.repo_owner }}
-
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -44,36 +37,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-versions }}
 
-      - name: Install dependencies
+      - name: build a binary wheel and a source tarball
         run: |
           python -m pip install --upgrade pip
-          pip install "tox-gh-actions>=2,<3" poetry
+          pip install setuptools wheel transonic
+          python setup.py sdist bdist_wheel
 
-        # declare package_version, repo_owner, repo_name, package_name so you may use it in web hooks.
-      - name: Declare variables for convenient use
-        id: variables_step
-        run: |
-          echo "::set-output name=repo_owner::${GITHUB_REPOSITORY%/*}"
-          echo "::set-output name=repo_name::${GITHUB_REPOSITORY#*/}"
-          echo "::set-output name=package_name::`poetry version | awk '{print $1}'`"
-          echo "::set-output name=package_version::`poetry version --short`"
-        shell: bash
+      - name: publish distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.6.4
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
 
-      - name: publish documentation
-        run: |
-          poetry install -E doc
-          poetry run mkdocs build
-          git config --global user.name Docs deploy
-          git config --global user.email docs@dummy.bot.com
-          poetry run mike deploy -p -f --ignore `poetry version --short`
-          poetry run mike set-default -p `poetry version --short`
-
-      - name: Build wheels and source tarball
-        run: |
-          poetry lock
-          poetry build
-
-      - name: Create Release
+      - name: create Release
         id: create_release
         uses: actions/create-release@v1
         env:
@@ -85,81 +60,19 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: publish to PYPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: get Asset name
+        run: |
+          export PKG=$(ls dist/ | grep tar)
+          set -- $PKG
+          echo "name=$1" >> $GITHUB_ENV
+
+      - name: upload Release Asset (sdist) to GitHub
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
-          skip_existing: true
-
-  notification:
-    needs: release
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - uses: martialonline/workflow-status@v2
-        id: check
-
-      - name: build success notification via email
-        if: ${{ steps.check.outputs.status == 'success' }}
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.BUILD_NOTIFY_MAIL_SERVER }}
-          server_port: ${{ secrets.BUILD_NOTIFY_MAIL_PORT }}
-          username: ${{ secrets.BUILD_NOTIFY_MAIL_FROM }}
-          password: ${{ secrets.BUILD_NOTIFY_MAIL_PASSWORD }}
-          from: build-bot
-          to: ${{ secrets.BUILD_NOTIFY_MAIL_RCPT }}
-          subject: ${{ needs.release.outputs.package_name }}.${{ needs.release.outputs.package_version}} build successfully
-          convert_markdown: true
-          html_body: |
-            ## Build Success
-            ${{ needs.release.outputs.package_name }}.${{ needs.release.outputs.package_version }} is built and published to PYPI
-
-            ## Change Details
-            ${{ github.event.head_commit.message }}
-
-            For more information, please check change history at https://${{ needs.release.outputs.repo_owner }}.github.io/${{ needs.release.outputs.repo_name }}/${{ needs.release.outputs.package_version }}/history
-
-            ## Package Download
-            The pacakge is available at: https://pypi.org/project/${{ needs.release.outputs.package_name }}/
-
-      - name: build failure notification via email
-        if: ${{ steps.check.outputs.status == 'failure' }}
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.BUILD_NOTIFY_MAIL_SERVER }}
-          server_port: ${{ secrets.BUILD_NOTIFY_MAIL_PORT }}
-          username: ${{ secrets.BUILD_NOTIFY_MAIL_FROM }}
-          password: ${{ secrets.BUILD_NOTIFY_MAIL_PASSWORD }}
-          from: build-bot
-          to: ${{ secrets.BUILD_NOTIFY_MAIL_RCPT }}
-          subject: ${{ needs.release.outputs.package_name }}.${{ needs.release.outputs.package_version}} build failure
-          convert_markdown: true
-          html_body: |
-            ## Change Details
-            ${{ github.event.head_commit.message }}
-
-            ## Status: ${{ steps.check.outputs.status }}
-
-
-            ## View Log
-            https://github.com/${{ needs.release.outputs.repo_owner }}/${{ needs.release.outputs.repo_name }}/actions
-
-
-      # - name: Dingtalk Robot Notify
-      #   if: always()
-      #   uses: leafney/dingtalk-action@v1.0.0
-      #   env:
-      #     DINGTALK_ACCESS_TOKEN: ${{ secrets.DINGTALK_ACCESS_TOKEN }}
-      #     DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
-      #   with:
-      #     msgtype: markdown
-      #     title: CI Notification | Success
-      #     text: |
-      #       ### Build Success
-      #       ${{ needs.release.outputs.package_version_full }} is built and published to test pypi
-      #       ### Change History
-      #       Please check change history at https://${{ needs.release.outputs.repo_owner }}.github.io/${{ needs.release.outputs.repo_name }}/history
-      #       ### Package Download
-      #       Please download the pacakge at: https://test.pypi.org/project/${{ needs.release.outputs.repo_name }}/
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/${{ env.name }}
+          asset_name: ${{ env.name }}
+          asset_content_type: application/zip
