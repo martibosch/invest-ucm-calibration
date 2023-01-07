@@ -8,7 +8,6 @@ release = __version__
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
-    "sphinx_click",
     "myst_parser",
 ]
 
