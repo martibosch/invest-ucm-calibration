@@ -1,11 +1,5 @@
-bumpversion
-coverage
-coveralls
-isort
-flake8
-m2r @ git+https://github.com/crossnox/m2r@dev#egg=m2r
+build
+pre-commit
 pytest
-sphinx
-sphinx-click
-tox-travis
-yapf
+pytest-cov
+twine
