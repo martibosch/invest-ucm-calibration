@@ -1,5 +1,12 @@
 # Change log
 
+## 0.5.0 (07/01/2022)
+
+- feat: run invest to align rasters to ensure consistent raster meta
+- fix: data array groupby apply -> map (deprecation)
+- feat: CLI using fire instead of click
+- fix: rio crs to str for fiona (not needed in fiona>=1.9)
+
 ## 0.4.1 (11/09/2020)
 
 - compute r2 score with scipy.stats to avoid negative values
