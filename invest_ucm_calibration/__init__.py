@@ -2,13 +2,12 @@ import os
 import tempfile
 from os import path
 
-import dask
 import fiona
 import numpy as np
 import numpy.random as rn
 import pandas as pd
-import pygeoprocessing
 import rasterio as rio
+import rioxarray as rxr
 import simanneal
 import xarray as xr
 from natcap.invest import urban_cooling_model as ucm
@@ -29,6 +28,12 @@ def _is_sequence(arg):
     # return (not hasattr(arg, "strip") and hasattr(arg, "__getitem__")
     #         or hasattr(arg, "__iter__"))
     return hasattr(arg, "__getitem__") or hasattr(arg, "__iter__")
+
+
+def _date_workspace_dir(base_workspace_dir, i):
+    # very simple function to avoid duplicating the logic of generating a
+    # date-specific workspace dir
+    return path.join(base_workspace_dir, str(i))
 
 
 def _preprocess_t_rasters(t_raster_filepaths, dst_meta, resampling=None):
@@ -123,7 +128,6 @@ class UCMWrapper:
         dates=None,
         workspace_dir=None,
         extra_ucm_args=None,
-        num_workers=None,
     ):
         """
         Pythonic and open source interface to the InVEST urban cooling model.
@@ -179,11 +183,6 @@ class UCMWrapper:
         extra_ucm_args : dict-like, optional
             Other keyword arguments to be passed to the `execute` method of
             the urban cooling model.
-        num_workers : int, optional
-            Number of workers so that the simulations of each iteration can be
-            executed at scale. Only useful if calibrating for multiple dates.
-            If not provided, it will be set automatically depending on the
-            number of dates and available number of processors in the CPU.
         """
 
         # 1. prepare base args
@@ -373,32 +372,6 @@ class UCMWrapper:
             self.obs_mask = ~np.isnan(self.obs_arr)
             self.obs_arr = self.obs_arr[self.obs_mask]
 
-        # number of workers to perform each calibration iteration at scale
-        if num_workers is None:
-            num_workers = min(len(self.ref_et_raster_filepaths), os.cpu_count())
-        self.num_workers = num_workers
-
-    # properties to process the geospatial raster grid
-    @property
-    def grid_x(self):
-        try:
-            return self._grid_x
-        except AttributeError:
-            cols = np.arange(self.meta["width"])
-            x, _ = transform.xy(self.meta["transform"], cols, cols)
-            self._grid_x = x
-            return self._grid_x
-
-    @property
-    def grid_y(self):
-        try:
-            return self._grid_y
-        except AttributeError:
-            rows = np.arange(self.meta["height"])
-            _, y = transform.xy(self.meta["transform"], rows, rows)
-            self._grid_y = y
-            return self._grid_y
-
     # methods to predict temperatures
     def predict_t_arr(self, i, ucm_args=None):
         """
@@ -428,10 +401,13 @@ class UCMWrapper:
         # if read_kws is None:
         #     read_kws = {}
 
-        # note that this workspace_dir corresponds to this date only
-        workspace_dir = path.join(self.base_args["workspace_dir"], str(i))
+        # if no specific workspace dir is provided in `ucm_args`, a dedicated
+        # workspace_dir for this date only is used
+        base_workspace_dir = self.base_args["workspace_dir"]
+        if args["workspace_dir"] == base_workspace_dir:
+            args.update(workspace_dir=_date_workspace_dir(base_workspace_dir, i))
+        # update the rest of date-specific args
         args.update(
-            workspace_dir=workspace_dir,
             ref_eto_raster_path=self.ref_et_raster_filepaths[i],
             # t_ref=Tref_da.sel(time=date).item(),
             # uhi_max=uhi_max_da.sel(time=date).item()
@@ -445,35 +421,6 @@ class UCMWrapper:
         ) as src:
             # return src.read(1, **read_kws)
             return src.read(1)
-
-    def predict_t_arrs(self, ucm_args=None):
-        """
-        Predict the temperatures arrays for all the calibration dates.
-
-        Parameters
-        ----------
-        ucm_args : dict-like, optional
-            Custom keyword arguments to be passed to the `execute` method of
-            the urban cooling model. The provided keys will override those set
-            in the `base_args` attribute of this class (set up in the
-            initialization method).
-
-        Returns
-        -------
-        t : list of np.ndarray
-            Predicted temperature arrays for each date
-        """
-        # we could also iterate over `self.t_refs` or `self.uhi_maxs`
-        pred_delayed = [
-            dask.delayed(self.predict_t_arr)(i, ucm_args)
-            for i in range(len(self.ref_et_raster_filepaths))
-        ]
-
-        return list(
-            dask.compute(
-                *pred_delayed, scheduler="processes", num_workers=self.num_workers
-            )
-        )
 
     def predict_t_da(self, ucm_args=None):
         """
@@ -493,21 +440,32 @@ class UCMWrapper:
         t_da : xr.DataArray
             Predicted temperature data array aligned with the LULC raster
         """
-
-        t_arrs = self.predict_t_arrs(ucm_args=ucm_args)
-
         if self.dates is None:
             dates = np.arange(len(self.ref_et_raster_filepaths))
         else:
             dates = self.dates
-        t_da = xr.DataArray(
-            t_arrs,
-            dims=("time", "y", "x"),
-            coords={"time": dates, "y": self.grid_y, "x": self.grid_x},
-            name="T",
-            attrs={"pyproj_srs": self.meta["crs"].to_proj4()},
+
+        if ucm_args is None:
+            ucm_args = {}
+        workspace_dirs = []
+        base_workspace_dir = self.base_args["workspace_dir"]
+        for i, _ in enumerate(dates):
+            workspace_dir = _date_workspace_dir(base_workspace_dir, i)
+            workspace_dirs.append(workspace_dir)
+            ucm_args["workspace_dir"] = workspace_dir
+            _ = self.predict_t_arr(i, ucm_args=ucm_args)
+
+        t_da = xr.concat(
+            [
+                rxr.open_rasterio(filepath)
+                for filepath in [
+                    path.join(workspace_dir, "intermediate", "T_air.tif")
+                    for workspace_dir in workspace_dirs
+                ]
+            ],
+            dim="time",
         )
-        return t_da.groupby("time").map(lambda x: x.where(self.data_mask, np.nan))
+        return t_da.where(t_da != t_da.attrs["_FillValue"])
 
     def get_sample_comparison_df(self, ucm_args=None):
         """
@@ -637,7 +595,6 @@ class UCMCalibrator(simanneal.Annealer):
         metric=None,
         stepsize=None,
         exclude_zero_kernel_dist=True,
-        num_workers=None,
         num_steps=None,
         num_update_logs=None,
     ):
@@ -717,11 +674,6 @@ class UCMCalibrator(simanneal.Annealer):
             decay functions with a kernel distance of zero pixels (i.e.,
             `t_air_average_radius` or `green_area_cooling_distance` lower than
             half the LULC pixel resolution).
-        num_workers : int, optional
-            Number of workers so that the simulations of each iteration can be
-            executed at scale. Only useful if calibrating for multiple dates.
-            If not provided, it will be set automatically depending on the
-            number of dates and available number of processors in the CPU.
         num_steps : int, optional.
             Number of iterations of the simulated annealing procedure. If not
             provided, the value set in `settings.DEFAULT_NUM_STEPS` will be
@@ -745,7 +697,6 @@ class UCMCalibrator(simanneal.Annealer):
             dates=dates,
             workspace_dir=workspace_dir,
             extra_ucm_args=extra_ucm_args,
-            num_workers=num_workers,
         )
 
         # metric
@@ -829,7 +780,10 @@ class UCMCalibrator(simanneal.Annealer):
     def energy(self):
         ucm_args = self._ucm_params_dict.copy()
         pred_arr = np.hstack(
-            self.ucm_wrapper.predict_t_arrs(ucm_args=ucm_args)
+            [
+                self.ucm_wrapper.predict_t_arr(i, ucm_args=ucm_args)
+                for i, _ in enumerate(self.ucm_wrapper.ref_et_raster_filepaths)
+            ]
         ).flatten()[self.ucm_wrapper.sample_keys]
 
         return self.compute_metric(
@@ -878,12 +832,14 @@ class UCMCalibrator(simanneal.Annealer):
 
     # shortcuts to useful `UCMWrapper` methods
     # TODO: dry `ucm_args` with a decorator?
-    def predict_t_arrs(self, ucm_args=None):
+    def predict_t_arr(self, i, ucm_args=None):
         """
-        Predict the temperatures arrays for all the calibration dates.
+        Predict a temperature array for one of the calibration dates
 
         Parameters
         ----------
+        i : int
+            Positional index of the calibration date
         ucm_args : dict-like, optional
             Custom keyword arguments to be passed to the `execute` method of
             the urban cooling model. The provided keys will override those set
@@ -892,14 +848,14 @@ class UCMCalibrator(simanneal.Annealer):
 
         Returns
         -------
-        t : np.ndarray
-            Predicted temperature arrays for each date
+        t_arr : np.ndarray
+            Predicted temperature array aligned with the LULC raster for the
+            selected date
         """
-
         if ucm_args is None:
             ucm_args = self._ucm_params_dict.copy()
 
-        return self.ucm_wrapper.predict_t_arrs(ucm_args=ucm_args)
+        return self.ucm_wrapper.predict_t_arr(i, ucm_args=ucm_args)
 
     def predict_t_da(self, ucm_args=None):
         """

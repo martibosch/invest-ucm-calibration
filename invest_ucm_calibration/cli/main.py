@@ -26,7 +26,6 @@ def cli(
     metric: Optional[str] = "mean_absolute_error",
     stepsize: Optional[float] = None,
     exclude_zero_kernel_dist: Optional[bool] = True,
-    num_workers: Optional[int] = None,
     num_steps: Optional[int] = None,
     num_update_logs: Optional[int] = None,
     dst_filepath: Optional[str] = None,
@@ -75,11 +74,6 @@ def cli(
         Whether the calibration should consider parameters that lead to decay functions
         with a kernel distance of zero pixels (i.e., `t_air_average_radius` or
         `green_area_cooling_distance` lower than half the LULC pixel resolution).
-    num_workers : Optional[int], optional
-        Number of workers so that the simulations of each iteration can be executed at
-        scale. Only useful if calibrating for multiple dates. If not provided, it will
-        be set automatically depending on the number of dates and available number of
-        processors in the CPU.
     num_steps : Optional[int], optional
         Number of iterations of the simulated annealing procedure. If not provided, the
         value set in `settings.DEFAULT_NUM_STEPS` will be used.
@@ -119,7 +113,6 @@ def cli(
         metric=metric,
         stepsize=stepsize,
         exclude_zero_kernel_dist=exclude_zero_kernel_dist,
-        num_workers=num_workers,
         num_steps=num_steps,
         num_update_logs=num_update_logs,
     )

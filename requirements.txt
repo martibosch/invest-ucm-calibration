@@ -3,6 +3,7 @@ fire
 fiona>=1.0.0
 natcap-invest>=3.10.1
 rasterio>=1.0.0
+rioxarray
 scikit-learn>=1.0.0
 simanneal>=0.5.0
 xarray
