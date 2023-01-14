@@ -304,8 +304,6 @@ class UCMWrapper:
             )
 
             # attributes to index the samples
-            if isinstance(dates, str):
-                dates = [dates]
             sample_name = "pixel"
             # the sample index/keys here will select all the pixels of the
             # rasters, indexed by their flat-array position - this is rather
@@ -344,11 +342,20 @@ class UCMWrapper:
             )
         else:
             # this is useful in this same method (see below)
-            dates = None
             sample_name = None
             sample_index = None
             sample_keys = None
             obs_arr = None
+
+        # process the dates attribute
+        if isinstance(dates, str):
+            # if at this point dates is a string, it means that it has been passed as a
+            # string in the init argument. We have to make it a list so that we can
+            # iterate it properly
+            dates = [dates]
+        elif dates is None:
+            # if at this point dates is None, let us just make it an integer list
+            dates = np.arange(len(self.ref_et_raster_filepaths))
 
         # store the attributes to index the samples
         self.meta = meta
@@ -440,16 +447,11 @@ class UCMWrapper:
         t_da : xr.DataArray
             Predicted temperature data array aligned with the LULC raster
         """
-        if self.dates is None:
-            dates = np.arange(len(self.ref_et_raster_filepaths))
-        else:
-            dates = self.dates
-
         if ucm_args is None:
             ucm_args = {}
         workspace_dirs = []
         base_workspace_dir = self.base_args["workspace_dir"]
-        for i, _ in enumerate(dates):
+        for i, _ in enumerate(self.dates):
             workspace_dir = _date_workspace_dir(base_workspace_dir, i)
             workspace_dirs.append(workspace_dir)
             ucm_args["workspace_dir"] = workspace_dir
@@ -782,7 +784,7 @@ class UCMCalibrator(simanneal.Annealer):
         pred_arr = np.hstack(
             [
                 self.ucm_wrapper.predict_t_arr(i, ucm_args=ucm_args)
-                for i, _ in enumerate(self.ucm_wrapper.ref_et_raster_filepaths)
+                for i, _ in enumerate(self.ucm_wrapper.dates)
             ]
         ).flatten()[self.ucm_wrapper.sample_keys]
 
