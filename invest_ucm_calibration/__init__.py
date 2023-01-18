@@ -513,7 +513,7 @@ class UCMWrapper:
             }
         )
 
-    def get_model_perf_df(self, ucm_args=None, num_runs=None):
+    def get_model_perf_df(self, ucm_args=None, compare_random=None, num_runs=None):
         """
         Compute comparing the performance of the calibrated model with
         randomly sampling temperature values from the
@@ -528,11 +528,16 @@ class UCMWrapper:
             the urban cooling model. The provided keys will override those set
             in the `base_args` attribute of this class (set up in the
             initialization method).
+        compare_random : bool, optional
+            Whether the performance of the urban cooling model should be compared to
+            randomly sampling (from the uniform and normal distribution). If not
+            provided, the value set in `settings.DEFAULT_MODEL_PERF_COMPARE_RANDOM`
+            will be used.
         num_runs : int, optional
             Number of runs over which the results of randomly sampling (from
             both the uniform and normal distribution) will be averaged. If not
             provided, the value set in `settings.DEFAULT_MODEL_PERF_NUM_RUNS`
-            will be used.
+            will be used. Ignored if `compare_random` is False.
 
         Returns
         -------
@@ -542,12 +547,24 @@ class UCMWrapper:
 
         comparison_df = self.get_sample_comparison_df(ucm_args=ucm_args).dropna()
 
+        model_perf_df = pd.DataFrame(columns=METRIC_COLUMNS)
+        # InVEST urban cooling model
+        model_perf_df.loc["invest_ucm"] = _compute_model_perf(
+            comparison_df["obs"], comparison_df["pred"]
+        )
+
+        if compare_random is None:
+            compare_random = settings.DEFAULT_MODEL_PERF_COMPARE_RANDOM
+
+        if not compare_random:
+            return model_perf_df
+
         if num_runs is None:
             num_runs = settings.DEFAULT_MODEL_PERF_NUM_RUNS
         uniform_values = []
         normal_values = []
         for _ in range(num_runs):
-            for date, date_df in comparison_df.groupby("date"):
+            for _date, date_df in comparison_df.groupby("date"):
                 date_obs_ser = date_df["obs"]
                 T_min = date_obs_ser.min()
                 T_max = date_obs_ser.max()
@@ -563,17 +580,10 @@ class UCMWrapper:
         uniform_values = np.concatenate(uniform_values)
         normal_values = np.concatenate(normal_values)
 
-        model_perf_df = pd.DataFrame(columns=METRIC_COLUMNS)
-
         # Uniform/normal
         obs_values = pd.concat([comparison_df["obs"] for _ in range(num_runs)])
         model_perf_df.loc["uniform"] = _compute_model_perf(obs_values, uniform_values)
         model_perf_df.loc["normal"] = _compute_model_perf(obs_values, normal_values)
-
-        # InVEST urban cooling model
-        model_perf_df.loc["invest_ucm"] = _compute_model_perf(
-            comparison_df["obs"], comparison_df["pred"]
-        )
 
         return model_perf_df
 
