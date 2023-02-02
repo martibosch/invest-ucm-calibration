@@ -120,6 +120,7 @@ class UCMWrapper:
         biophysical_table_filepath,
         cc_method,
         ref_et_raster_filepaths,
+        aoi_vector_filepath=None,
         t_refs=None,
         uhi_maxs=None,
         t_raster_filepaths=None,
@@ -146,6 +147,9 @@ class UCMWrapper:
         ref_et_raster_filepaths : str or list-like
             Path to the reference evapotranspiration raster, or sequence of
             strings with a path to the reference evapotranspiration raster
+        aoi_vector_filepath : str, optional
+            Path to the area of interest vector. If not provided, the bounds of the LULC
+            raster will be used.
         t_refs : numeric or list-like, optional
             Reference air temperature. If not provided, it will be set as the
             minimum observed temperature (raster or station measurements, for
@@ -197,22 +201,23 @@ class UCMWrapper:
         # 1.2. area of interest vector
         # create a dummy geojson with the bounding box extent for the area of
         # interest - this is completely ignored during the calibration
-        aoi_vector_filepath = path.join(workspace_dir, "dummy_aoi.geojson")
-        with rio.open(lulc_raster_filepath) as src:
-            # geom = geometry.box(*src.bounds)
-            with fiona.open(
-                aoi_vector_filepath,
-                "w",
-                driver="GeoJSON",
-                crs=src.crs.to_string(),
-                schema={"geometry": "Polygon", "properties": {"id": "int"}},
-            ) as c:
-                c.write(
-                    {
-                        "geometry": geometry.mapping(geometry.box(*src.bounds)),
-                        "properties": {"id": 1},
-                    }
-                )
+        if aoi_vector_filepath is None:
+            aoi_vector_filepath = path.join(workspace_dir, "dummy_aoi.geojson")
+            with rio.open(lulc_raster_filepath) as src:
+                # geom = geometry.box(*src.bounds)
+                with fiona.open(
+                    aoi_vector_filepath,
+                    "w",
+                    driver="GeoJSON",
+                    crs=src.crs.to_string(),
+                    schema={"geometry": "Polygon", "properties": {"id": "int"}},
+                ) as c:
+                    c.write(
+                        {
+                            "geometry": geometry.mapping(geometry.box(*src.bounds)),
+                            "properties": {"id": 1},
+                        }
+                    )
 
         # 1.3. set base args dict as instance attribute
         # model parameters: prepare the dict here so that all the paths/
@@ -595,6 +600,7 @@ class UCMCalibrator(simanneal.Annealer):
         biophysical_table_filepath,
         cc_method,
         ref_et_raster_filepaths,
+        aoi_vector_filepath=None,
         t_refs=None,
         uhi_maxs=None,
         t_raster_filepaths=None,
@@ -625,6 +631,9 @@ class UCMCalibrator(simanneal.Annealer):
         ref_et_raster_filepaths : str or list-like
             Path to the reference evapotranspiration raster, or sequence of
             strings with a path to the reference evapotranspiration raster
+        aoi_vector_filepath : str, optional
+            Path to the area of interest vector. If not provided, the bounds of the LULC
+            raster will be used.
         t_refs : numeric or list-like, optional
             Reference air temperature. If not provided, it will be set as the
             minimum observed temperature (raster or station measurements, for
@@ -701,6 +710,7 @@ class UCMCalibrator(simanneal.Annealer):
             biophysical_table_filepath,
             cc_method,
             ref_et_raster_filepaths,
+            aoi_vector_filepath=aoi_vector_filepath,
             t_refs=t_refs,
             uhi_maxs=uhi_maxs,
             t_raster_filepaths=t_raster_filepaths,

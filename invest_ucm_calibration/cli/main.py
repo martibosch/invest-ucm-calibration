@@ -14,6 +14,7 @@ def cli(
     biophysical_table_filepath: str,
     cc_method: str,
     ref_et_raster_filepaths: List[str],
+    aoi_vector_filepath: Optional[str] = None,
     t_refs: Optional[List[float]] = None,
     uhi_maxs: Optional[List[float]] = None,
     t_raster_filepaths: Optional[List[str]] = None,
@@ -45,6 +46,9 @@ def cli(
     ref_et_raster_filepaths : List[str]
         Path to the reference evapotranspiration raster, or sequence of strings with a
         path to the reference evapotranspiration raster.
+    aoi_vector_filepath : Optional[str], optional
+        Path to the area of interest vector. If not provided, the bounds of the LULC
+        raster will be used.
     t_refs : Optional[List[float]], optional
         Reference air temperature. If not provided, it will be set as the minimum
         observed temperature (raster or station measurements, for each respective date
@@ -91,6 +95,7 @@ def cli(
         "natcap.invest.urban_cooling_model",
         "natcap.invest.utils",
         "pygeoprocessing.geoprocessing",
+        "taskgraph.Task",
     ):
         logging.getLogger(module).setLevel(logging.WARNING)
     # ignore all warnings
