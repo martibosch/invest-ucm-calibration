@@ -231,7 +231,11 @@ class UCMWrapper:
         }
         # if model_params is None:
         #     model_params = DEFAULT_MODEL_PARAMS
+        # set the basic model params used in all methods
         self.base_args.update(**settings.DEFAULT_UCM_PARAMS)
+        # for the "factors" cooling capacity method,
+        if self.base_args["cc_method"] == "factors":
+            self.base_args.update(**settings.DEFAULT_UCM_FACTORS_PARAMS)
 
         if extra_ucm_args is None:
             extra_ucm_args = settings.DEFAULT_EXTRA_UCM_ARGS
@@ -741,6 +745,10 @@ class UCMCalibrator(simanneal.Annealer):
         # initial solution
         if initial_solution is None:
             initial_solution = list(settings.DEFAULT_UCM_PARAMS.values())
+            # for the factors cooling capacity method, also add its parameters to the
+            # initial solution
+            if self.ucm_wrapper.base_args["cc_method"] == "factors":
+                initial_solution += list(settings.DEFAULT_UCM_FACTORS_PARAMS.values())
         # init the parent `Annealer` instance with the initial solution
         super(UCMCalibrator, self).__init__(initial_solution)
 
@@ -768,13 +776,17 @@ class UCMCalibrator(simanneal.Annealer):
     # property to get the model parameters according to the calibration state
     @property
     def _ucm_params_dict(self):
-        return dict(
+        ucm_params_dict = dict(
             t_air_average_radius=self.state[0],
             green_area_cooling_distance=self.state[1],
-            cc_weight_shade=self.state[2],
-            cc_weight_albedo=self.state[3],
-            cc_weight_eti=self.state[4],
         )
+        if self.ucm_wrapper.base_args["cc_method"] == "factors":
+            ucm_params_dict.update(
+                cc_weight_shade=self.state[2],
+                cc_weight_albedo=self.state[3],
+                cc_weight_eti=self.state[4],
+            )
+        return ucm_params_dict
 
     # methods required so that the `Annealer` class works for our purpose
     def move(self):
@@ -791,10 +803,12 @@ class UCMCalibrator(simanneal.Annealer):
                 # alternatively:
                 # state_neighbour[k] = np.max(state_neighbour[k],
                 #                             self.min_kernel_dist)
-        # rescale so that the three weights add up to one
-        weight_sum = sum(state_neighbour[2:])
-        for k in range(2, 5):
-            state_neighbour[k] /= weight_sum
+
+        if self.ucm_wrapper.base_args["cc_method"] == "factors":
+            # rescale so that the three weights add up to one
+            weight_sum = sum(state_neighbour[2:])
+            for k in range(2, 5):
+                state_neighbour[k] /= weight_sum
 
         # update the state
         self.state = state_neighbour
@@ -822,8 +836,10 @@ class UCMCalibrator(simanneal.Annealer):
         initial_solution : list-like, optional
             Sequence with the parameter values used as initial solution, of
             the form (t_air_average_radius, green_area_cooling_distance,
-            cc_weight_shade, cc_weight_albedo, cc_weight_eti). If not provided,
-            the default values of the urban cooling model will be used.
+            cc_weight_shade, cc_weight_albedo, cc_weight_eti) when the cooling capacity
+            method is "factors", or (t_air_average_radius, green_area_cooling_distance)
+            when the method is "intensity". If not provided, the default values of the
+            urban cooling model will be used.
         num_steps : int, optional.
             Number of iterations of the simulated annealing procedure. If not
             provided, the value set in `settings.DEFAULT_NUM_STEPS` will be
@@ -835,10 +851,8 @@ class UCMCalibrator(simanneal.Annealer):
 
         Returns
         -------
-        (state, metric) : the best state, i.e., combination of arguments of
-            the form (t_air_average_radius, green_area_cooling_distance,
-            cc_weight_shade, cc_weight_albedo, cc_weight_eti) and the
-            corresponding metric
+        (state, metric) : the best state, i.e., combination of model parameters and the
+            corresponding metric.
         """
 
         # Override the values set in the init method. Note that the attribute

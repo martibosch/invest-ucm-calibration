@@ -1,7 +1,10 @@
 # DEFAULT_INITIAL_SOLUTION = [500, 100, 0.6, 0.2, 0.2]
+
 DEFAULT_UCM_PARAMS = {
     "t_air_average_radius": 500,
     "green_area_cooling_distance": 100,
+}
+DEFAULT_UCM_FACTORS_PARAMS = {
     "cc_weight_shade": 0.6,
     "cc_weight_albedo": 0.2,
     "cc_weight_eti": 0.2,
