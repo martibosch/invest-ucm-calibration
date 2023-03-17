@@ -750,7 +750,7 @@ class UCMCalibrator(simanneal.Annealer):
             if self.ucm_wrapper.base_args["cc_method"] == "factors":
                 initial_solution += list(settings.DEFAULT_UCM_FACTORS_PARAMS.values())
         # init the parent `Annealer` instance with the initial solution
-        super(UCMCalibrator, self).__init__(initial_solution)
+        super().__init__(initial_solution)
 
         # whether we ensure that kernel decay distances are of at least one
         # pixel
