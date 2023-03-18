@@ -1,11 +1,10 @@
 import glob
 import os
 import shutil
-import subprocess
 import unittest
 from os import path
 
-import pytest
+from click import testing
 
 import invest_ucm_calibration as iuc
 from invest_ucm_calibration.cli import main
@@ -416,6 +415,7 @@ class TestCLI(unittest.TestCase):
         self.num_update_logs = 2
         self.workspace_dir = path.join(self.data_dir, "tmp")
         os.mkdir(self.workspace_dir)
+        self.runner = testing.CliRunner()
 
         # TODO: test more possibilities of `args` in `invoke`
         # TODO: test `_dict_from_kws`
@@ -431,9 +431,9 @@ class TestCLI(unittest.TestCase):
         uhi_maxs = "10"
 
         # calibrate with an aligned map
-        result = subprocess.run(
+        result = self.runner.invoke(
+            main.cli,
             [
-                "invest-ucm-calibration",
                 self.lulc_raster_filepath,
                 self.biophysical_table_filepath,
                 self.cc_method,
@@ -446,19 +446,19 @@ class TestCLI(unittest.TestCase):
                 "--t-raster-filepaths",
                 t_raster_filepath,
                 "--num-steps",
-                "1",
+                1,
                 "--num-update-logs",
-                "1",
+                1,
                 "--dst-filepath",
                 path.join(self.workspace_dir, "foo.json"),
             ],
         )
-        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.exit_code, 0)
 
         # calibrate with an unaligned map
-        result = subprocess.run(
+        result = self.runner.invoke(
+            main.cli,
             [
-                "invest-ucm-calibration",
                 self.lulc_raster_filepath,
                 self.biophysical_table_filepath,
                 self.cc_method,
@@ -471,19 +471,19 @@ class TestCLI(unittest.TestCase):
                 "--t-raster-filepaths",
                 unaligned_t_raster_filepath,
                 "--num-steps",
-                "1",
+                1,
                 "--num-update-logs",
-                "1",
+                1,
                 "--dst-filepath",
                 path.join(self.workspace_dir, "foo.json"),
-            ]
+            ],
         )
-        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.exit_code, 0)
 
         # test that unaligned rasters need to be aligned
-        result = subprocess.run(
+        result = self.runner.invoke(
+            main.cli,
             [
-                "invest-ucm-calibration",
                 self.lulc_raster_filepath,
                 self.biophysical_table_filepath,
                 self.cc_method,
@@ -497,19 +497,19 @@ class TestCLI(unittest.TestCase):
                 unaligned_t_raster_filepath,
                 "--no-align-rasters",
                 "--num-steps",
-                "1",
+                1,
                 "--num-update-logs",
-                "1",
+                1,
                 "--dst-filepath",
                 path.join(self.workspace_dir, "foo.json"),
-            ]
+            ],
         )
-        self.assertNotEqual(result.returncode, 0)
+        self.assertNotEqual(result.exit_code, 1)
 
         # test the `dates` arg
-        result = subprocess.run(
+        result = self.runner.invoke(
+            main.cli,
             [
-                "invest-ucm-calibration",
                 self.lulc_raster_filepath,
                 self.biophysical_table_filepath,
                 self.cc_method,
@@ -524,19 +524,19 @@ class TestCLI(unittest.TestCase):
                 "--dates",
                 self.date,
                 "--num-steps",
-                "1",
+                1,
                 "--num-update-logs",
-                "1",
+                1,
                 "--dst-filepath",
                 path.join(self.workspace_dir, "foo.json"),
-            ]
+            ],
         )
-        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.exit_code, 0)
 
         # calibrate with measurements
-        result = subprocess.run(
+        result = self.runner.invoke(
+            main.cli,
             [
-                "invest-ucm-calibration",
                 self.lulc_raster_filepath,
                 self.biophysical_table_filepath,
                 self.cc_method,
@@ -551,14 +551,14 @@ class TestCLI(unittest.TestCase):
                 "--station-locations-filepath",
                 self.station_locations_filepath,
                 "--num-steps",
-                "1",
+                1,
                 "--num-update-logs",
-                "1",
+                1,
                 "--dst-filepath",
                 path.join(self.workspace_dir, "bar.json"),
             ],
         )
-        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.exit_code, 0)
 
     # def test_multiple_days(self):
     #     t_refs = [20, 21]

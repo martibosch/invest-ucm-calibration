@@ -59,7 +59,7 @@ setup(
     dependency_links=dependency_links,
     entry_points={
         "console_scripts": [
-            "invest-ucm-calibration=invest_ucm_calibration.cli.main:main",
+            "invest-ucm-calibration=invest_ucm_calibration.cli.main:cli",
         ],
     },
     extras_require={"dev": dev_reqs, "docs": docs_reqs},
