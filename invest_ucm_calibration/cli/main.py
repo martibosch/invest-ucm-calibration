@@ -99,8 +99,8 @@ def _dict_from_kws(kws):
     "--t-raster-filepaths",
     cls=OptionEatAll,
     help="Path to the observed temperature raster, or sequence of strings with"
-    " a path to the observed temperature rasters. The raster must be aligned "
-    "to the LULC raster. Required if calibrating against temperature map(s).",
+    " a path to the observed temperature rasters. Required if calibrating "
+    "against temperature map(s).",
 )
 @click.option(
     "--station-t-filepath",
@@ -125,15 +125,6 @@ def _dict_from_kws(kws):
     help="Date or list of dates that correspond to each of the observed "
     "temperature raster provided in t_raster_filepaths. Ignored if "
     "`station_t_filepath` is provided.",
-)
-@click.option(
-    "--align-rasters/--no-align-rasters",
-    default=True,
-    help="Whether the rasters should be aligned before passing them as "
-    "arguments of the InVEST urban cooling model. Since the model already "
-    "aligns the LULC and reference evapotranspiration rasters, this argument "
-    "is only useful to align the temperature rasters, and is therefore ignored"
-    " if calibrating against station measurements.",
 )
 @click.option(
     "--workspace-dir",
@@ -222,7 +213,6 @@ def cli(
     station_t_filepath,
     station_locations_filepath,
     dates,
-    align_rasters,
     workspace_dir,
     initial_solution,
     extra_ucm_args,
@@ -282,7 +272,6 @@ def cli(
         station_t_filepath=station_t_filepath,
         station_locations_filepath=station_locations_filepath,
         dates=dates,
-        align_rasters=align_rasters,
         workspace_dir=workspace_dir,
         initial_solution=initial_solution,
         extra_ucm_args=extra_ucm_args,

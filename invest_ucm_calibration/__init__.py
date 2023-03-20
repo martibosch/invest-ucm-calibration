@@ -167,8 +167,8 @@ class UCMWrapper:
             dates).
         t_raster_filepaths : str or list-like, optional
             Path to the observed temperature raster, or sequence of strings with a path
-            to the observed temperature rasters. The raster must be aligned to the LULC
-            raster. Required if calibrating against temperature map(s).
+            to the observed temperature rasters. Required if calibrating against
+            temperature map(s).
         station_t_filepath : str, optional
             Path to a table of air temperature measurements where each column
             corresponds to a monitoring station and each row to a datetime. Required if
@@ -649,8 +649,8 @@ class UCMCalibrator(simanneal.Annealer):
             dates).
         t_raster_filepaths : str or list-like, optional
             Path to the observed temperature raster, or sequence of strings with a path
-            to the observed temperature rasters. The raster must be aligned to the LULC
-            raster. Required if calibrating against temperature map(s).
+            to the observed temperature rasters. Required if calibrating against
+            temperature map(s).
         station_t_filepath : str, optional
             Path to a table of air temperature measurements where each column
             corresponds to a monitoring station and each row to a datetime.  Required if
