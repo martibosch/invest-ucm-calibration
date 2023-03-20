@@ -61,8 +61,8 @@ class TestIUC(unittest.TestCase):
             self.biophysical_table_filepath,
             self.cc_method,
             self.ref_et_raster_filepaths[0],
-            t_refs,
-            uhi_maxs,
+            t_refs=t_refs,
+            uhi_maxs=uhi_maxs,
         ).predict_t_da()
 
         # TODO: test that proper (informative) errors are raised when calling methods

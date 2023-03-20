@@ -37,7 +37,7 @@ def _date_workspace_dir(base_workspace_dir, i):
     return path.join(base_workspace_dir, str(i))
 
 
-def _preprocess_t_rasters(t_raster_filepaths, dst_meta, resampling=None):
+def _preprocess_t_rasters(t_raster_filepaths, dst_meta, *, resampling=None):
     # get dst raster info (constant) outside the loop
     dst_shape = (dst_meta["height"], dst_meta["width"])
     dst_transform = dst_meta["transform"]
@@ -128,6 +128,7 @@ class UCMWrapper:
         biophysical_table_filepath,
         cc_method,
         ref_et_raster_filepaths,
+        *,
         aoi_vector_filepath=None,
         t_refs=None,
         uhi_maxs=None,
@@ -390,7 +391,7 @@ class UCMWrapper:
             self.obs_arr = self.obs_arr[self.obs_mask]
 
     # methods to predict temperatures
-    def predict_t_arr(self, i, ucm_args=None):
+    def predict_t_arr(self, i, *, ucm_args=None):
         """
         Predict a temperature array for one of the calibration dates.
 
@@ -437,7 +438,7 @@ class UCMWrapper:
             # return src.read(1, **read_kws)
             return src.read(1)
 
-    def predict_t_da(self, ucm_args=None):
+    def predict_t_da(self, *, ucm_args=None):
         """
         Predict a temperature data-array.
 
@@ -477,7 +478,7 @@ class UCMWrapper:
         )
         return t_da.where(t_da != t_da.attrs["_FillValue"])
 
-    def get_sample_comparison_df(self, ucm_args=None):
+    def get_sample_comparison_df(self, *, ucm_args=None):
         """
         Compute a comparison data frame of the observed and predicted values.
 
@@ -520,7 +521,7 @@ class UCMWrapper:
             }
         )
 
-    def get_model_perf_df(self, ucm_args=None, compare_random=None, num_runs=None):
+    def get_model_perf_df(self, *, ucm_args=None, compare_random=None, num_runs=None):
         """
         Compute a model performance data frame.
 
@@ -603,6 +604,7 @@ class UCMCalibrator(simanneal.Annealer):
         biophysical_table_filepath,
         cc_method,
         ref_et_raster_filepaths,
+        *,
         aoi_vector_filepath=None,
         t_refs=None,
         uhi_maxs=None,
@@ -820,7 +822,7 @@ class UCMCalibrator(simanneal.Annealer):
             self.ucm_wrapper.obs_arr, pred_arr[self.ucm_wrapper.obs_mask]
         )
 
-    def calibrate(self, initial_solution=None, num_steps=None, num_update_logs=None):
+    def calibrate(self, *, initial_solution=None, num_steps=None, num_update_logs=None):
         """
         Calibrate the urban cooling model for the given data.
 
@@ -862,7 +864,7 @@ class UCMCalibrator(simanneal.Annealer):
 
     # shortcuts to useful `UCMWrapper` methods
     # TODO: dry `ucm_args` with a decorator?
-    def predict_t_arr(self, i, ucm_args=None):
+    def predict_t_arr(self, i, *, ucm_args=None):
         """
         Predict a temperature array for one of the calibration dates.
 
@@ -886,7 +888,7 @@ class UCMCalibrator(simanneal.Annealer):
 
         return self.ucm_wrapper.predict_t_arr(i, ucm_args=ucm_args)
 
-    def predict_t_da(self, ucm_args=None):
+    def predict_t_da(self, *, ucm_args=None):
         """
         Predict a temperature data-array.
 
@@ -909,7 +911,7 @@ class UCMCalibrator(simanneal.Annealer):
 
         return self.ucm_wrapper.predict_t_da(ucm_args=ucm_args)
 
-    def get_sample_comparison_df(self, ucm_args=None):
+    def get_sample_comparison_df(self, *, ucm_args=None):
         """
         Compute a comparison data frame of the observed and predicted values.
 
@@ -935,7 +937,7 @@ class UCMCalibrator(simanneal.Annealer):
 
         return self.ucm_wrapper.get_sample_comparison_df(ucm_args=ucm_args)
 
-    def get_model_perf_df(self, ucm_args=None, num_runs=None):
+    def get_model_perf_df(self, *, ucm_args=None, num_runs=None):
         """
         Compute a model performance data frame.
 
