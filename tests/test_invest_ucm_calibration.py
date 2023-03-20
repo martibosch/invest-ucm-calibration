@@ -290,17 +290,21 @@ class TestIUC(unittest.TestCase):
 
         # test the `dates` argument
         # if not providing `station_t_filepath` and not providing the `dates` arg, the
-        # `dates` attribute is `None`
-        self.assertIsNone(
-            iuc.UCMCalibrator(
-                self.lulc_raster_filepath,
-                self.biophysical_table_filepath,
-                self.cc_method,
-                ref_et_raster_filepath,
-                t_raster_filepaths=t_raster_filepath,
-                num_steps=self.num_steps,
-                num_update_logs=self.num_update_logs,
-            ).ucm_wrapper.dates
+        # `dates` attribute is a numpy array of the length of the ref. evapotransp.
+        # raster
+        self.assertEqual(
+            len(
+                iuc.UCMCalibrator(
+                    self.lulc_raster_filepath,
+                    self.biophysical_table_filepath,
+                    self.cc_method,
+                    ref_et_raster_filepath,
+                    t_raster_filepaths=t_raster_filepath,
+                    num_steps=self.num_steps,
+                    num_update_logs=self.num_update_logs,
+                ).ucm_wrapper.dates
+            ),
+            1,  # len(ref_et_raster_filepath)
         )
         # if not providing `station_t_filepath` and providing the `dates` arg, the
         # `dates` attribute is taken from there (although converted to a list of one
