@@ -1,3 +1,4 @@
+"""Tests."""
 import glob
 import os
 import shutil
@@ -50,8 +51,8 @@ class TestIUC(unittest.TestCase):
     #     shutil.rmtree(self.workspace_dir)
 
     def test_wrapper_only(self):
-        # test that we can use the `UCMWrapper` class without providing any
-        # observed temperatures (just to execute the urban cooling model)
+        # test that we can use the `UCMWrapper` class without providing any observed
+        # temperatures (just to execute the urban cooling model)
         t_refs = 20
         uhi_maxs = 10
 
@@ -64,9 +65,9 @@ class TestIUC(unittest.TestCase):
             uhi_maxs,
         ).predict_t_da()
 
-        # TODO: test that proper (informative) errors are raised when calling
-        # methods that require observed temperatures (e.g.,
-        # `get_sample_comparison_df`, `get_model_perf_df`...)
+        # TODO: test that proper (informative) errors are raised when calling methods
+        # that require observed temperatures (e.g., `get_sample_comparison_df`,
+        # `get_model_perf_df`...)
 
     def test_one_day(self):
         ref_et_raster_filepath = self.ref_et_raster_filepaths[0]
@@ -287,8 +288,8 @@ class TestIUC(unittest.TestCase):
         date = "23-07-2020"
 
         # test the `dates` argument
-        # if not providing `station_t_filepath` and not providing the `dates`
-        # arg, the `dates` attribute is `None`
+        # if not providing `station_t_filepath` and not providing the `dates` arg, the
+        # `dates` attribute is `None`
         self.assertIsNone(
             iuc.UCMCalibrator(
                 self.lulc_raster_filepath,
@@ -300,9 +301,9 @@ class TestIUC(unittest.TestCase):
                 num_update_logs=self.num_update_logs,
             ).ucm_wrapper.dates
         )
-        # if not providing `station_t_filepath` and providing the `dates` arg,
-        # the `dates` attribute is taken from there (although converted to a
-        # list of one element only)
+        # if not providing `station_t_filepath` and providing the `dates` arg, the
+        # `dates` attribute is taken from there (although converted to a list of one
+        # element only)
         self.assertEqual(
             iuc.UCMCalibrator(
                 self.lulc_raster_filepath,
@@ -342,8 +343,8 @@ class TestIUC(unittest.TestCase):
             num_update_logs=self.num_update_logs,
         ).predict_t_da()
 
-        # test that the time dimension has a coordinate for each ref.
-        # evapotransp. raster filepath
+        # test that the time dimension has a coordinate for each ref. evapotransp.
+        # raster filepath
         self.assertEqual(len(t_da["time"]), len(self.ref_et_raster_filepaths))
 
     def test_data_frames(self):
@@ -358,16 +359,15 @@ class TestIUC(unittest.TestCase):
             num_update_logs=self.num_update_logs,
         )
 
-        # test that the set of unique sample dates is of the same size as the
-        # number of ref. evapotransp. raster filepath
+        # test that the set of unique sample dates is of the same size as the number of
+        # ref. evapotransp. raster filepath
         sample_comparison_df = ucm_calibrator.get_sample_comparison_df()
         self.assertEqual(
             len(sample_comparison_df["date"].unique()),
             len(self.ref_et_raster_filepaths),
         )
 
-        # test that all the columns of the model performance data frame are
-        # numeric
+        # test that all the columns of the model performance data frame are numeric
         model_perf_df = ucm_calibrator.get_model_perf_df()
         self.assertEqual(
             len(model_perf_df.columns),

@@ -1,3 +1,4 @@
+"""CLI."""
 import json
 import logging
 import warnings
@@ -10,7 +11,8 @@ from invest_ucm_calibration import settings
 
 # utils for the CLI
 class OptionEatAll(click.Option):
-    # Option that can take an unlimided number of arguments
+    """Option that can take an unlimided number of arguments."""
+
     # Copied from Stephen Rauch's answer in stack overflow.
     # https://bit.ly/2kstLhe
     def __init__(self, *args, **kwargs):
@@ -22,6 +24,8 @@ class OptionEatAll(click.Option):
         self._eat_all_parser = None
 
     def add_to_parser(self, parser, ctx):
+        """Add argument to the parser."""
+
         def parser_process(value, state):
             # method to hook to the parser.process
             done = False
@@ -231,7 +235,7 @@ def cli(
     dst_filepath,
 ):
     """
-    Calibrate the InVEST urban cooling model
+    Calibrate the InVEST urban cooling model.
 
     Arguments
     ----------
@@ -299,7 +303,7 @@ def cli(
                 {
                     param_key: param_value
                     for param_key, param_value in zip(
-                        settings.DEFAULT_UCM_PARAMS, solution
+                        settings.DEFAULT_UCM_PARAMS, solution, strict=True
                     )
                 },
                 dst,

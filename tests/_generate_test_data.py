@@ -34,14 +34,14 @@ num_pixels = width * height
 west, south, east, north = 0, 0, 10, 10
 srs = osr.SpatialReference()
 srs.ImportFromEPSG(4326)
-meta = dict(
-    driver="GTiff",
-    width=width,
-    height=height,
-    count=1,
-    transform=transform.from_bounds(west, south, east, north, width, height),
-    crs=srs.ExportToProj4(),
-)
+meta = {
+    "driver": "GTiff",
+    "width": width,
+    "height": height,
+    "count": 1,
+    "transform": transform.from_bounds(west, south, east, north, width, height),
+    "crs": srs.ExportToProj4(),
+}
 
 data_mask = np.full(shape, True)
 data_mask[0, 0] = False
@@ -73,7 +73,7 @@ t_nodata = -300
 t_dtype = np.float32
 
 num_stations = 2
-station_labels = [letter for letter in string.ascii_lowercase[:num_stations]]
+station_labels = list(string.ascii_lowercase[:num_stations])
 
 # dump a randomly-generated lulc raster
 with rio.open(

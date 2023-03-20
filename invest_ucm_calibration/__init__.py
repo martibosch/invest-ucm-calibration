@@ -1,3 +1,4 @@
+"""InVEST Urban Cooling Model calibration module."""
 import os
 import tempfile
 from os import path
@@ -31,8 +32,8 @@ def _is_sequence(arg):
 
 
 def _date_workspace_dir(base_workspace_dir, i):
-    # very simple function to avoid duplicating the logic of generating a
-    # date-specific workspace dir
+    # very simple function to avoid duplicating the logic of generating a date-specific
+    # workspace dir
     return path.join(base_workspace_dir, str(i))
 
 
@@ -96,8 +97,8 @@ def _r2_score(obs, pred):
 
 
 def _inverted_r2_score(obs, pred):
-    # since we need to maximize (instead of minimize) the r2, the
-    # simulated annealing will actually minimize 1 - R^2
+    # since we need to maximize (instead of minimize) the r2, the simulated annealing
+    # will actually minimize 1 - R^2
     return 1 - _r2_score(obs, pred)
 
 
@@ -114,6 +115,13 @@ def _compute_model_perf(obs, pred):
 
 # classes
 class UCMWrapper:
+    """
+    Pythonic and open source interface to the InVEST urban cooling model.
+
+    A set of additional utility methods serve to compute temperature maps and data
+    frames.
+    """
+
     def __init__(
         self,
         lulc_raster_filepath,
@@ -131,64 +139,58 @@ class UCMWrapper:
         extra_ucm_args=None,
     ):
         """
-        Pythonic and open source interface to the InVEST urban cooling model.
-        A set of additional utility methods serve to compute temperature maps
-        and data frames.
+        Initialize a Pythonic Urban Cooling Model wrapper.
 
         Parameters
         ----------
         lulc_raster_filepath : str
-            Path to the raster of land use/land cover (LULC) file
+            Path to the raster of land use/land cover (LULC) file.
         biophysical_table_filepath : str
-            Path to the biophysical table CSV file
+            Path to the biophysical table CSV file.
         cc_method : str
-            Cooling capacity calculation method. Can be either 'factors' or
-            'intensity'
+            Cooling capacity calculation method. Can be either 'factors' or 'intensity'.
         ref_et_raster_filepaths : str or list-like
-            Path to the reference evapotranspiration raster, or sequence of
-            strings with a path to the reference evapotranspiration raster
+            Path to the reference evapotranspiration raster, or sequence of strings with
+            a path to the reference evapotranspiration raster.
         aoi_vector_filepath : str, optional
             Path to the area of interest vector. If not provided, the bounds of the LULC
             raster will be used.
         t_refs : numeric or list-like, optional
-            Reference air temperature. If not provided, it will be set as the
-            minimum observed temperature (raster or station measurements, for
-            each respective date if calibrating for multiple dates).
+            Reference air temperature. If not provided, it will be set as the minimum
+            observed temperature (raster or station measurements, for each respective
+            date if calibrating for multiple dates).
         uhi_maxs : numeric or list-like, optional
             Magnitude of the UHI effect. If not provided, it will be set as the
-            difference between the maximum and minimum observed temperature
-            (raster or station measurements, for each respective date if
-            calibrating for multiple dates).
+            difference between the maximum and minimum observed temperature (raster or
+            station measurements, for each respective date if calibrating for multiple
+            dates).
         t_raster_filepaths : str or list-like, optional
-            Path to the observed temperature raster, or sequence of strings
-            with a path to the observed temperature rasters. The raster must
-            be aligned to the LULC raster. Required if calibrating against
-            temperature map(s).
+            Path to the observed temperature raster, or sequence of strings with a path
+            to the observed temperature rasters. The raster must be aligned to the LULC
+            raster. Required if calibrating against temperature map(s).
         station_t_filepath : str, optional
             Path to a table of air temperature measurements where each column
-            corresponds to a monitoring station and each row to a datetime.
-            Required if calibrating against station measurements. Ignored if
-            providing `t_raster_filepaths`.
+            corresponds to a monitoring station and each row to a datetime. Required if
+            calibrating against station measurements. Ignored if providing
+            `t_raster_filepaths`.
         station_locations_filepath : str, optional
-            Path to a table with the locations of each monitoring station,
-            where the first column features the station labels (that match the
-            columns of the table of air temperature measurements), and there
-            are (at least) a column labelled 'x' and a column labelled 'y'
-            that correspod to the locations of each station (in the same CRS
-            as the other rasters). Required if calibrating against station
-            measurements. Ignored if providing `t_raster_filepaths`.
+            Path to a table with the locations of each monitoring station, where the
+            first column features the station labels (that match the columns of the
+            table of air temperature measurements), and there are (at least) a column
+            labelled 'x' and a column labelled 'y' that correspod to the locations of
+            each station (in the same CRS as the other rasters). Required if calibrating
+            against station measurements. Ignored if providing `t_raster_filepaths`.
         dates : str or datetime-like or list-like, optional
-            Date or list of dates that correspond to each of the observed
-            temperature raster provided in `t_raster_filepaths`. Ignored if
-            `station_t_filepath` is provided.
+            Date or list of dates that correspond to each of the observed temperature
+            raster provided in `t_raster_filepaths`. Ignored if `station_t_filepath` is
+            provided.
         workspace_dir : str, optional
-            Path to the folder where the model outputs will be written. If not
-            provided, a temporary directory will be used.
-        extra_ucm_args : dict-like, optional
-            Other keyword arguments to be passed to the `execute` method of
-            the urban cooling model.
+            Path to the folder where the model outputs will be written. If not provided,
+            a temporary directory will be used.
+        Extra_ucm_args : dict-like, optional
+            Other keyword arguments to be passed to the `execute` method of the urban
+            cooling model.
         """
-
         # 1. prepare base args
         # 1.1. workspace dir
         if workspace_dir is None:
@@ -199,8 +201,8 @@ class UCMWrapper:
         # self.base_args.update()
 
         # 1.2. area of interest vector
-        # create a dummy geojson with the bounding box extent for the area of
-        # interest - this is completely ignored during the calibration
+        # create a dummy geojson with the bounding box extent for the area of interest -
+        # this is completely ignored during the calibration
         if aoi_vector_filepath is None:
             aoi_vector_filepath = path.join(workspace_dir, "dummy_aoi.geojson")
             with rio.open(lulc_raster_filepath) as src:
@@ -220,8 +222,8 @@ class UCMWrapper:
                     )
 
         # 1.3. set base args dict as instance attribute
-        # model parameters: prepare the dict here so that all the paths/
-        # parameters have been properly set above
+        # model parameters: prepare the dict here so that all the paths/ parameters have
+        # been properly set above
         self.base_args = {
             "lulc_raster_path": lulc_raster_filepath,
             "biophysical_table_path": biophysical_table_filepath,
@@ -239,7 +241,8 @@ class UCMWrapper:
 
         if extra_ucm_args is None:
             extra_ucm_args = settings.DEFAULT_EXTRA_UCM_ARGS
-        # if the user provides custom `extra_ucm_args`, check that the required args are set
+        # if the user provides custom `extra_ucm_args`, check that the required args are
+        # set
         for extra_ucm_arg in settings.DEFAULT_EXTRA_UCM_ARGS:
             if extra_ucm_arg not in extra_ucm_args:
                 extra_ucm_args[extra_ucm_arg] = settings.DEFAULT_EXTRA_UCM_ARGS[
@@ -256,8 +259,7 @@ class UCMWrapper:
         self.ref_et_raster_filepaths = ref_et_raster_filepaths
 
         # 3. raster metadata
-        # get the raster metadata from lulc (used to predict air temperature
-        # rasters)
+        # get the raster metadata from lulc (used to predict air temperature rasters)
         # with rio.open(lulc_raster_filepath) as src:
         #     meta = src.meta.copy()
         #     data_mask = src.dataset_mask().astype(bool)
@@ -304,21 +306,20 @@ class UCMWrapper:
                     )
                 else:
                     obs_arrs, _, __ = _preprocess_t_rasters(t_raster_filepaths, meta)
-            # need to replace nodata with `nan` so that `dropna` works below
-            # the `_preprocess_t_rasters` method already uses `np.where` to
-            # that end, however the `data_mask` used here might be different
-            # (i.e., the intersection of the data regions of all rasters)
+            # need to replace nodata with `nan` so that `dropna` works below the
+            # `_preprocess_t_rasters` method already uses `np.where` to that end,
+            # however the `data_mask` used here might be different (i.e., the
+            # intersection of the data regions of all rasters)
             obs_arr = np.concatenate(
                 [np.where(data_mask, _obs_arr, np.nan) for _obs_arr in obs_arrs]
             )
 
             # attributes to index the samples
             sample_name = "pixel"
-            # the sample index/keys here will select all the pixels of the
-            # rasters, indexed by their flat-array position - this is rather
-            # silly but this way the attributes work in the same way when
-            # calibrating against observed temperature rasters or station
-            # measurements
+            # the sample index/keys here will select all the pixels of the rasters,
+            # indexed by their flat-array position - this is rather silly but this way
+            # the attributes work in the same way when calibrating against observed
+            # temperature rasters or station measurements
             # sample_keys = np.flatnonzero(data_mask)
             # sample_index = np.arange(data_mask.sum())
             sample_index = np.arange(data_mask.size)
@@ -391,25 +392,23 @@ class UCMWrapper:
     # methods to predict temperatures
     def predict_t_arr(self, i, ucm_args=None):
         """
-        Predict a temperature array for one of the calibration dates
+        Predict a temperature array for one of the calibration dates.
 
         Parameters
         ----------
         i : int
-            Positional index of the calibration date
+            Positional index of the calibration date.
         ucm_args : dict-like, optional
-            Custom keyword arguments to be passed to the `execute` method of
-            the urban cooling model. The provided keys will override those set
-            in the `base_args` attribute of this class (set up in the
-            initialization method).
+            Custom keyword arguments to be passed to the `execute` method of the urban
+            cooling model. The provided keys will override those set in the `base_args`
+            attribute of this class (set up in the initialization method).
 
         Returns
         -------
         t_arr : np.ndarray
-            Predicted temperature array aligned with the LULC raster for the
-            selected date
+            Predicted temperature array aligned with the LULC raster for the selected
+            date.
         """
-
         args = self.base_args.copy()
         if ucm_args is not None:
             args.update(ucm_args)
@@ -440,21 +439,21 @@ class UCMWrapper:
 
     def predict_t_da(self, ucm_args=None):
         """
-        Predict a temperature data-array aligned with the LULC raster for all
-        the calibration dates
+        Predict a temperature data-array.
+
+        The array is aligned with the LULC raster for all the calibration dates.
 
         Parameters
         ----------
         ucm_args : dict-like, optional
-            Custom keyword arguments to be passed to the `execute` method of
-            the urban cooling model. The provided keys will override those set
-            in the `base_args` attribute of this class (set up in the
-            initialization method).
+            Custom keyword arguments to be passed to the `execute` method of the urban
+            cooling model. The provided keys will override those set in the `base_args`
+            attribute of this class (set up in the initialization method).
 
         Returns
         -------
         t_da : xr.DataArray
-            Predicted temperature data array aligned with the LULC raster
+            Predicted temperature data array aligned with the LULC raster.
         """
         if ucm_args is None:
             ucm_args = {}
@@ -480,26 +479,25 @@ class UCMWrapper:
 
     def get_sample_comparison_df(self, ucm_args=None):
         """
-        Compute a comparison data frame of the observed and predicted values
-        for each sample (i.e., station measurement for a specific date).
-        Requires that the object has been instantiated with either
+        Compute a comparison data frame of the observed and predicted values.
+
+        Each row corresponds to a sample (i.e., station measurement for a specific
+        date). Requires that the object has been instantiated with either
         `t_raster_filepath` or `station_t_filepath`.
 
         Parameters
         ----------
         ucm_args : dict-like, optional
-            Custom keyword arguments to be passed to the `execute` method of
-            the urban cooling model. The provided keys will override those set
-            in the `base_args` attribute of this class (set up in the
-            initialization method).
+            Custom keyword arguments to be passed to the `execute` method of the urban
+            cooling model. The provided keys will override those set in the `base_args`
+            attribute of this class (set up in the initialization method).
 
         Returns
         -------
         sample_comparison_df : pd.DataFrame
-            Comparison data frame with columns for the sample date, station,
-            observed and predicted values
+            Comparison data frame with columns for the sample date, station, observed
+            and predicted values.
         """
-
         tair_pred_df = pd.DataFrame(index=self.sample_index)
 
         t_da = self.predict_t_da(ucm_args=ucm_args)
@@ -524,36 +522,35 @@ class UCMWrapper:
 
     def get_model_perf_df(self, ucm_args=None, compare_random=None, num_runs=None):
         """
-        Compute comparing the performance of the calibrated model with
-        randomly sampling temperature values from the
-        :math:`[T_{ref}, T_{ref} + UHI_{max}]` range according to a uniform
-        and normal distribution. Requires that the object has been
-        instantiated with either `t_raster_filepath` or `station_t_filepath`.
+        Compute a model performance data frame.
+
+        Compare the performance of the calibrated model with randomly sampling
+        temperature values from the :math:`[T_{ref}, T_{ref} + UHI_{max}]` range
+        according to a uniform and normal distribution. Requires that the object has
+        been instantiated with either `t_raster_filepath` or `station_t_filepath`.
 
         Parameters
         ----------
         ucm_args : dict-like, optional
-            Custom keyword arguments to be passed to the `execute` method of
-            the urban cooling model. The provided keys will override those set
-            in the `base_args` attribute of this class (set up in the
-            initialization method).
+            Custom keyword arguments to be passed to the `execute` method of the urban
+            cooling model. The provided keys will override those set in the `base_args`
+            attribute of this class (set up in the initialization method).
         compare_random : bool, optional
             Whether the performance of the urban cooling model should be compared to
             randomly sampling (from the uniform and normal distribution). If not
-            provided, the value set in `settings.DEFAULT_MODEL_PERF_COMPARE_RANDOM`
-            will be used.
+            provided, the value set in `settings.DEFAULT_MODEL_PERF_COMPARE_RANDOM` will
+            be used.
         num_runs : int, optional
-            Number of runs over which the results of randomly sampling (from
-            both the uniform and normal distribution) will be averaged. If not
-            provided, the value set in `settings.DEFAULT_MODEL_PERF_NUM_RUNS`
-            will be used. Ignored if `compare_random` is False.
+            Number of runs over which the results of randomly sampling (from both the
+            uniform and normal distribution) will be averaged. If not provided, the
+            value set in `settings.DEFAULT_MODEL_PERF_NUM_RUNS` will be used. Ignored if
+            `compare_random` is False.
 
         Returns
         -------
         model_perf_df : pd.DataFrame
-            Predicted temperature data array aligned with the LULC raster
+            Predicted temperature data array aligned with the LULC raster.
         """
-
         comparison_df = self.get_sample_comparison_df(ucm_args=ucm_args).dropna()
 
         model_perf_df = pd.DataFrame(columns=METRIC_COLUMNS)
@@ -598,6 +595,8 @@ class UCMWrapper:
 
 
 class UCMCalibrator(simanneal.Annealer):
+    """Urban cooling model calibrator."""
+
     def __init__(
         self,
         lulc_raster_filepath,
@@ -621,92 +620,87 @@ class UCMCalibrator(simanneal.Annealer):
         num_update_logs=None,
     ):
         """
-        Utility to calibrate the urban cooling model
+        Initialize the urban cooling model calibrator.
 
         Parameters
         ----------
         lulc_raster_filepath : str
-            Path to the raster of land use/land cover (LULC) file
+            Path to the raster of land use/land cover (LULC) file.
         biophysical_table_filepath : str
-            Path to the biophysical table CSV file
+            Path to the biophysical table CSV file.
         cc_method : str
-            Cooling capacity calculation method. Can be either 'factors' or
-            'intensity'
+            Cooling capacity calculation method. Can be either 'factors' or 'intensity'.
         ref_et_raster_filepaths : str or list-like
-            Path to the reference evapotranspiration raster, or sequence of
-            strings with a path to the reference evapotranspiration raster
+            Path to the reference evapotranspiration raster, or sequence of strings with
+            a path to the reference evapotranspiration raster.
         aoi_vector_filepath : str, optional
             Path to the area of interest vector. If not provided, the bounds of the LULC
             raster will be used.
         t_refs : numeric or list-like, optional
-            Reference air temperature. If not provided, it will be set as the
-            minimum observed temperature (raster or station measurements, for
-            each respective date if calibrating for multiple dates).
+            Reference air temperature. If not provided, it will be set as the minimum
+            observed temperature (raster or station measurements, for each respective
+            date if calibrating for multiple dates).
         uhi_maxs : numeric or list-like, optional
             Magnitude of the UHI effect. If not provided, it will be set as the
-            difference between the maximum and minimum observed temperature
-            (raster or station measurements, for each respective date if
-            calibrating for multiple dates).
+            difference between the maximum and minimum observed temperature (raster or
+            station measurements, for each respective date if calibrating for multiple
+            dates).
         t_raster_filepaths : str or list-like, optional
-            Path to the observed temperature raster, or sequence of strings
-            with a path to the observed temperature rasters. The raster must
-            be aligned to the LULC raster. Required if calibrating against
-            temperature map(s).
+            Path to the observed temperature raster, or sequence of strings with a path
+            to the observed temperature rasters. The raster must be aligned to the LULC
+            raster. Required if calibrating against temperature map(s).
         station_t_filepath : str, optional
             Path to a table of air temperature measurements where each column
-            corresponds to a monitoring station and each row to a datetime.
-            Required if calibrating against station measurements.
+            corresponds to a monitoring station and each row to a datetime.  Required if
+            calibrating against station measurements.
         station_locations_filepath : str, optional
-            Path to a table with the locations of each monitoring station,
-            where the first column features the station labels (that match the
-            columns of the table of air temperature measurements), and there
-            are (at least) a column labelled 'x' and a column labelled 'y'
-            that correspod to the locations of each station (in the same CRS
-            as the other rasters). Required if calibrating against station
-            measurements.
+            Path to a table with the locations of each monitoring station, where the
+            first column features the station labels (that match the columns of the
+            table of air temperature measurements), and there are (at least) a column
+            labelled 'x' and a column labelled 'y' that correspod to the locations of
+            each station (in the same CRS as the other rasters). Required if calibrating
+            against station measurements.
         dates : str or datetime-like or list-like, optional
-            Date or list of dates that correspond to each of the observed
-            temperature raster provided in `t_raster_filepaths`. Ignored if
-            `station_t_filepath` is provided.
+            Date or list of dates that correspond to each of the observed temperature
+            raster provided in `t_raster_filepaths`. Ignored if `station_t_filepath` is
+            provided.
         workspace_dir : str, optional
-            Path to the folder where the model outputs will be written. If not
-            provided, a temporary directory will be used.
+            Path to the folder where the model outputs will be written. If not provided,
+            a temporary directory will be used.
         initial_solution : list-like, optional
-            Sequence with the parameter values used as initial solution, of
-            the form (t_air_average_radius, green_area_cooling_distance,
-            cc_weight_shade, cc_weight_albedo, cc_weight_eti). If not provided,
-            the default values of the urban cooling model will be used.
+            Sequence with the parameter values used as initial solution, of the form
+            (t_air_average_radius, green_area_cooling_distance, cc_weight_shade,
+            cc_weight_albedo, cc_weight_eti). If not provided, the default values of the
+            urban cooling model will be used.
         extra_ucm_args : dict-like, optional
-            Other keyword arguments to be passed to the `execute` method of
-            the urban cooling model.
+            Other keyword arguments to be passed to the `execute` method of the urban
+            cooling model.
         metric : {'R2', 'MAE', 'RMSE'}, optional
-            Target metric to optimize in the calibration. Can be either 'R2'
-            for the R squared (which will be maximized), 'MAE' for the mean
-            absolute error (which will be minimized) or 'RMSE' for the (root)
-            mean squared error (which will be minimized). If not provided, the
-            value set in `settings.DEFAULT_METRIC` will be used.
+            Target metric to optimize in the calibration. Can be either 'R2' for the R
+            squared (which will be maximized), 'MAE' for the mean absolute error (which
+            will be minimized) or 'RMSE' for the (root) mean squared error (which will
+            be minimized). If not provided, the value set in `settings.DEFAULT_METRIC`
+            will be used.
         stepsize : numeric, optional
-            Step size in terms of the fraction of each parameter when looking
-            to select a neighbor solution for the following iteration. The
-            neighbor will be randomly drawn from an uniform distribution in the
-            [param - stepsize * param, param + stepsize * param] range. For
-            example, with a step size of 0.3 and a 't_air_average_radius' of
-            500 at a given iteration, the solution for the next iteration will
-            be uniformly sampled from the [350, 650] range. If not provided, it
-            will be taken from `settings.DEFAULT_STEPSIZE`.
+            Step size in terms of the fraction of each parameter when looking to select
+            a neighbor solution for the following iteration. The neighbor will be
+            randomly drawn from an uniform distribution in the [param - stepsize *
+            param, param + stepsize * param] range. For example, with a step size of 0.3
+            and a 't_air_average_radius' of 500 at a given iteration, the solution for
+            the next iteration will be uniformly sampled from the [350, 650] range. If
+            not provided, it will be taken from `settings.DEFAULT_STEPSIZE`.
         exclude_zero_kernel_dist : bool, default True
-            Whether the calibration should consider parameters that lead to
-            decay functions with a kernel distance of zero pixels (i.e.,
-            `t_air_average_radius` or `green_area_cooling_distance` lower than
-            half the LULC pixel resolution).
+            Whether the calibration should consider parameters that lead to decay
+            functions with a kernel distance of zero pixels (i.e.,
+            `t_air_average_radius` or `green_area_cooling_distance` lower than half the
+            LULC pixel resolution).
         num_steps : int, optional.
-            Number of iterations of the simulated annealing procedure. If not
-            provided, the value set in `settings.DEFAULT_NUM_STEPS` will be
-            used.
+            Number of iterations of the simulated annealing procedure. If not provided,
+            the value set in `settings.DEFAULT_NUM_STEPS` will be used.
         num_update_logs : int, default 100
             Number of updates that will be logged. If `num_steps` is equal to
-            `num_update_logs`, each iteration will be logged. If not provided,
-            the value set in `settings.DEFAULT_UPDATE_LOGS` will be used.
+            `num_update_logs`, each iteration will be logged. If not provided, the value
+            set in `settings.DEFAULT_UPDATE_LOGS` will be used.
         """
         # init the model wrapper
         self.ucm_wrapper = UCMWrapper(
@@ -729,8 +723,8 @@ class UCMCalibrator(simanneal.Annealer):
         if metric is None:
             metric = settings.DEFAULT_METRIC
         if metric == "R2":
-            # since we need to maximize (instead of minimize) the r2, the
-            # simulated annealing will actually minimize 1 - R^2
+            # since we need to maximize (instead of minimize) the r2, the simulated
+            # annealing will actually minimize 1 - R^2
             self.compute_metric = _inverted_r2_score
         elif metric == "MAE":
             self.compute_metric = metrics.mean_absolute_error
@@ -752,14 +746,12 @@ class UCMCalibrator(simanneal.Annealer):
         # init the parent `Annealer` instance with the initial solution
         super().__init__(initial_solution)
 
-        # whether we ensure that kernel decay distances are of at least one
-        # pixel
+        # whether we ensure that kernel decay distances are of at least one pixel
         if exclude_zero_kernel_dist:
             with rio.open(self.ucm_wrapper.base_args["lulc_raster_path"]) as src:
-                # the chained `np.min` and `np.abs` corresponds to the way
-                # that the urban cooling model sets the `cell_size` variable
-                # which is in turn used in the denominator when obtaining
-                # kernel distances
+                # the chained `np.min` and `np.abs` corresponds to the way that the
+                # urban cooling model sets the `cell_size` variable which is in turn
+                # used in the denominator when obtaining kernel distances
                 self.min_kernel_dist = (
                     0.5 * np.min(np.abs(src.res)) + settings.MIN_KERNEL_DIST_EPS
                 )
@@ -776,10 +768,10 @@ class UCMCalibrator(simanneal.Annealer):
     # property to get the model parameters according to the calibration state
     @property
     def _ucm_params_dict(self):
-        ucm_params_dict = dict(
-            t_air_average_radius=self.state[0],
-            green_area_cooling_distance=self.state[1],
-        )
+        ucm_params_dict = {
+            "t_air_average_radius": self.state[0],
+            "green_area_cooling_distance": self.state[1],
+        }
         if self.ucm_wrapper.base_args["cc_method"] == "factors":
             ucm_params_dict.update(
                 cc_weight_shade=self.state[2],
@@ -790,6 +782,7 @@ class UCMCalibrator(simanneal.Annealer):
 
     # methods required so that the `Annealer` class works for our purpose
     def move(self):
+        """Change the model parameters to explore the best performance."""
         state_neighbour = []
         for param in self.state:
             state_neighbour.append(
@@ -814,6 +807,7 @@ class UCMCalibrator(simanneal.Annealer):
         self.state = state_neighbour
 
     def energy(self):
+        """Compute the state's value of the metric to optimize (minimize)."""
         ucm_args = self._ucm_params_dict.copy()
         pred_arr = np.hstack(
             [
@@ -828,35 +822,35 @@ class UCMCalibrator(simanneal.Annealer):
 
     def calibrate(self, initial_solution=None, num_steps=None, num_update_logs=None):
         """
-        Run a simulated annealing procedure to get the arguments of the InVEST
-        urban cooling model that minimize the performance metric
+        Calibrate the urban cooling model for the given data.
+
+        Run a simulated annealing procedure to get the arguments of the InVEST urban
+        cooling model that minimize the performance metric.
 
         Parameters
         ----------
         initial_solution : list-like, optional
-            Sequence with the parameter values used as initial solution, of
-            the form (t_air_average_radius, green_area_cooling_distance,
-            cc_weight_shade, cc_weight_albedo, cc_weight_eti) when the cooling capacity
-            method is "factors", or (t_air_average_radius, green_area_cooling_distance)
-            when the method is "intensity". If not provided, the default values of the
-            urban cooling model will be used.
+            Sequence with the parameter values used as initial solution, of the form
+            (t_air_average_radius, green_area_cooling_distance, cc_weight_shade,
+            cc_weight_albedo, cc_weight_eti) when the cooling capacity method is
+            "factors", or (t_air_average_radius, green_area_cooling_distance) when the
+            method is "intensity". If not provided, the default values of the urban
+            cooling model will be used.
         num_steps : int, optional.
-            Number of iterations of the simulated annealing procedure. If not
-            provided, the value set in `settings.DEFAULT_NUM_STEPS` will be
-            used.
+            Number of iterations of the simulated annealing procedure. If not provided,
+            the value set in `settings.DEFAULT_NUM_STEPS` will be used.
         num_update_logs : int, default 100
             Number of updates that will be logged. If `num_steps` is equal to
-            `num_update_logs`, each iteration will be logged. If not provided,
-            the value set in `settings.DEFAULT_UPDATE_LOGS` will be used.
+            `num_update_logs`, each iteration will be logged. If not provided, the value
+            set in `settings.DEFAULT_UPDATE_LOGS` will be used.
 
         Returns
         -------
         (state, metric) : the best state, i.e., combination of model parameters and the
             corresponding metric.
         """
-
-        # Override the values set in the init method. Note that the attribute
-        # names are defined in the `Annealer` class
+        # Override the values set in the init method. Note that the attribute names are
+        # defined in the `Annealer` class
         if initial_solution is not None:
             self.state = initial_solution
         if num_steps is not None:
@@ -870,23 +864,22 @@ class UCMCalibrator(simanneal.Annealer):
     # TODO: dry `ucm_args` with a decorator?
     def predict_t_arr(self, i, ucm_args=None):
         """
-        Predict a temperature array for one of the calibration dates
+        Predict a temperature array for one of the calibration dates.
 
         Parameters
         ----------
         i : int
-            Positional index of the calibration date
+            Positional index of the calibration date.
         ucm_args : dict-like, optional
-            Custom keyword arguments to be passed to the `execute` method of
-            the urban cooling model. The provided keys will override those set
-            in the `base_args` attribute of this class (set up in the
-            initialization method).
+            Custom keyword arguments to be passed to the `execute` method of the urban
+            cooling model. The provided keys will override those set in the `base_args`
+            attribute of this class (set up in the initialization method).
 
         Returns
         -------
         t_arr : np.ndarray
-            Predicted temperature array aligned with the LULC raster for the
-            selected date
+            Predicted temperature array aligned with the LULC raster for the selected
+            date.
         """
         if ucm_args is None:
             ucm_args = self._ucm_params_dict.copy()
@@ -895,23 +888,22 @@ class UCMCalibrator(simanneal.Annealer):
 
     def predict_t_da(self, ucm_args=None):
         """
-        Predict a temperature data-array aligned with the LULC raster for all
-        the calibration dates
+        Predict a temperature data-array.
+
+        The array is aligned with the LULC raster for all the calibration dates.
 
         Parameters
         ----------
         ucm_args : dict-like, optional
-            Custom keyword arguments to be passed to the `execute` method of
-            the urban cooling model. The provided keys will override those set
-            in the current solution found by the calibrator, i.e., the `state`
-            attribute.
+            Custom keyword arguments to be passed to the `execute` method of the urban
+            cooling model. The provided keys will override those set in the current
+            solution found by the calibrator, i.e., the `state` attribute.
 
         Returns
         -------
         t_da : xr.DataArray
-            Predicted temperature data array aligned with the LULC raster
+            Predicted temperature data array aligned with the LULC raster.
         """
-
         if ucm_args is None:
             ucm_args = self._ucm_params_dict.copy()
 
@@ -919,24 +911,25 @@ class UCMCalibrator(simanneal.Annealer):
 
     def get_sample_comparison_df(self, ucm_args=None):
         """
-        Compute a comparison data frame of the observed and predicted values
-        for each sample (i.e., station measurement for a specific date)
+        Compute a comparison data frame of the observed and predicted values.
+
+        Each row corresponds to a sample (i.e., station measurement for a specific
+        date). Requires that the object has been instantiated with either
+        `t_raster_filepath` or `station_t_filepath`.
 
         Parameters
         ----------
         ucm_args : dict-like, optional
-            Custom keyword arguments to be passed to the `execute` method of
-            the urban cooling model. The provided keys will override those set
-            in the current solution found by the calibrator, i.e., the `state`
-            attribute.
+            Custom keyword arguments to be passed to the `execute` method of the urban
+            cooling model. The provided keys will override those set in the current
+            solution found by the calibrator, i.e., the `state` attribute.
 
         Returns
         -------
         sample_comparison_df : pd.DataFrame
-            Comparison data frame with columns for the sample date, station,
-            observed and predicted values
+            Comparison data frame with columns for the sample date, station, observed
+            and predicted values.
         """
-
         if ucm_args is None:
             ucm_args = self._ucm_params_dict.copy()
 
@@ -944,30 +937,29 @@ class UCMCalibrator(simanneal.Annealer):
 
     def get_model_perf_df(self, ucm_args=None, num_runs=None):
         """
-        Compute comparing the performance of the calibrated model with
-        randomly sampling temperature values from the
-        :math:`[T_{ref}, T_{ref} + UHI_{max}]` range according to a uniform
-        and normal distribution
+        Compute a model performance data frame.
+
+        Compare the performance of the calibrated model with randomly sampling
+        temperature values from the :math:`[T_{ref}, T_{ref} + UHI_{max}]` range
+        according to a uniform and normal distribution. Requires that the object has
+        been instantiated with either `t_raster_filepath` or `station_t_filepath`.
 
         Parameters
         ----------
         ucm_args : dict-like, optional
-            Custom keyword arguments to be passed to the `execute` method of
-            the urban cooling model. The provided keys will override those set
-            in the current solution found by the calibrator, i.e., the `state`
-            attribute.
+            Custom keyword arguments to be passed to the `execute` method of the urban
+            cooling model. The provided keys will override those set in the current
+            solution found by the calibrator, i.e., the `state` attribute.
         num_runs : int, optional
-            Number of runs over which the results of randomly sampling (from
-            both the uniform and normal distribution) will be averaged. If not
-            provided, the value set in `settings.DEFAULT_MODEL_PERF_NUM_RUNS`
-            will be used.
+            Number of runs over which the results of randomly sampling (from both the
+            uniform and normal distribution) will be averaged. If not provided, the
+            value set in `settings.DEFAULT_MODEL_PERF_NUM_RUNS` will be used.
 
         Returns
         -------
         model_perf_df : pd.DataFrame
-            Predicted temperature data array aligned with the LULC raster
+            Predicted temperature data array aligned with the LULC raster.
         """
-
         if ucm_args is None:
             ucm_args = self._ucm_params_dict.copy()
 

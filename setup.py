@@ -1,3 +1,4 @@
+"""Setup."""
 # coding=utf-8
 
 from io import open  # compatible enconding parameter
@@ -25,6 +26,7 @@ here = path.abspath(path.dirname(__file__))
 
 
 def read_reqs(reqs_filepath):
+    """Read requirements from file."""
     with open(reqs_filepath, encoding="utf-8") as f:
         return f.read().split("\n")
 
