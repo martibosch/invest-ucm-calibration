@@ -77,130 +77,126 @@ def _dict_from_kws(kws):
     "--ref-et-raster-filepaths",
     cls=OptionEatAll,
     required=True,
-    help="Path to the reference evapotranspiration raster, or sequence of "
-    "strings with a path to the reference evapotranspiration raster",
+    help="Path to the reference evapotranspiration raster, or sequence of strings with "
+    "a path to the reference evapotranspiration raster",
 )
 @click.option(
     "--t-refs",
     cls=OptionEatAll,
-    help="Reference air temperature. If not provided, it will be set as the "
-    "minimum observed temperature (raster or station measurements, for each "
-    "respective date if calibrating for multiple dates).",
+    help="Reference air temperature. If not provided, it will be set as the minimum "
+    "observed temperature (raster or station measurements, for each respective date if "
+    "calibrating for multiple dates).",
 )
 @click.option(
     "--uhi-maxs",
     cls=OptionEatAll,
     help="Magnitude of the UHI effect. If not provided, it will be set as the "
-    "difference between the maximum and minimum observed temperature (raster "
-    "or station measurements, for each respective date if calibrating for "
-    "multiple dates).",
+    "difference between the maximum and minimum observed temperature (raster or station"
+    " measurements, for each respective date if calibrating for multiple dates).",
 )
 @click.option(
     "--t-raster-filepaths",
     cls=OptionEatAll,
-    help="Path to the observed temperature raster, or sequence of strings with"
-    " a path to the observed temperature rasters. Required if calibrating "
-    "against temperature map(s).",
+    help="Path to the observed temperature raster, or sequence of strings with a path "
+    "to the observed temperature rasters. Required if calibrating against temperature "
+    "map(s).",
 )
 @click.option(
     "--station-t-filepath",
     type=click.Path(exists=True),
-    help="Path to a table of air temperature measurements where each column "
-    "corresponds to a monitoring station and each row to a datetime. Required "
-    "if calibrating against station measurements.",
+    help="Path to a table of air temperature measurements where each column corresponds"
+    " to a monitoring station and each row to a datetime. Required if calibrating "
+    "against station measurements.",
 )
 @click.option(
     "--station-locations-filepath",
     type=click.Path(exists=True),
-    help="Path to a table with the locations of each monitoring station, where"
-    " the first column features the station labels (that match the columns of "
-    "the table of air temperature measurements), and there are (at least) a "
-    "column labelled `x` and a column labelled `y` that correspod to the "
-    "locations of each station (in the same CRS as the other rasters). "
-    "Required if calibrating against station measurements.",
+    help="Path to a table with the locations of each monitoring station, where the "
+    "first column features the station labels (that match the columns of the table of "
+    "air temperature measurements), and there are (at least) a column labelled `x` and "
+    "a column labelled `y` that correspod to the locations of each station (in the same"
+    " CRS as the other rasters). Required if calibrating against station measurements.",
 )
 @click.option(
     "--dates",
     cls=OptionEatAll,
-    help="Date or list of dates that correspond to each of the observed "
-    "temperature raster provided in t_raster_filepaths. Ignored if "
-    "`station_t_filepath` is provided.",
+    help="Date or list of dates that correspond to each of the observed temperature "
+    "raster provided in t_raster_filepaths. Ignored if `station_t_filepath` is "
+    "provided.",
 )
 @click.option(
     "--workspace-dir",
     type=click.Path(exists=True),
-    help="Path to the folder where the model outputs will be written. If not "
-    "provided, a temporary directory will be used.",
+    help="Path to the folder where the model outputs will be written. If not provided, "
+    "a temporary directory will be used.",
 )
 @click.option(
     "--initial-solution",
     cls=OptionEatAll,
-    help="Sequence with the parameter values used as initial solution, of the "
-    "form (t_air_average_radius, green_area_cooling_distance, cc_weight_shade,"
-    " cc_weight_albedo, cc_weight_eti). If not provided, the default values of"
-    " the urban cooling model will be used.",
+    help="Sequence with the parameter values used as initial solution, of the form "
+    "(t_air_average_radius, green_area_cooling_distance, cc_weight_shade, "
+    "cc_weight_albedo, cc_weight_eti). If not provided, the default values of the urban"
+    " cooling model will be used.",
 )
 @click.option(
     "--extra-ucm-args",
     cls=OptionEatAll,
-    help="Other keyword arguments to be passed to the `execute` method of the "
-    'urban cooling model, as a sequence of "key:value" pairs',
+    help="Other keyword arguments to be passed to the `execute` method of the 'urban "
+    "cooling model, as a sequence of 'key:value' pairs",
 )
 @click.option(
     "--metric",
-    help="Target metric to optimize in the calibration. Can be either `R2` for"
-    " the R squared (which will be maximized), `MAE` for the mean absolute "
-    "error (which will be minimized) or `RMSE` for the (root) mean squared "
-    "error (which will be minimized). If not provided, the value set in "
-    "`settings.DEFAULT_METRIC` will be used.",
+    help="Target metric to optimize in the calibration. Can be either `R2` for the R "
+    "squared (which will be maximized), `MAE` for the mean absolute error (which will "
+    "be minimized) or `RMSE` for the (root) mean squared error (which will be "
+    "minimized). If not provided, the value set in `settings.DEFAULT_METRIC` will be "
+    "used.",
 )
 @click.option(
     "--stepsize",
     type=float,
-    help="Step size in terms of the fraction of each parameter when looking to"
-    "select a neighbor solution for the following iteration. The neighbor will"
-    " be randomly drawn from an uniform distribution in the [param - stepsize "
-    "* param, param + stepsize * param] range. For example, with a step size "
-    "of 0.3 and a `t_air_average_radius` of 500 at a given iteration, the "
-    "solution for the next iteration will be uniformly sampled from the [350, "
-    "650] range. If not provided, the value set in `settings.DEFAULT_STEPSIZE`"
-    " will be used.",
+    help="Step size in terms of the fraction of each parameter when looking toselect a "
+    "neighbor solution for the following iteration. The neighbor will be randomly drawn"
+    " from an uniform distribution in the [param - stepsize * param, param + stepsize *"
+    " param] range. For example, with a step size of 0.3 and a `t_air_average_radius` "
+    "of 500 at a given iteration, the solution for the next iteration will be uniformly"
+    " sampled from the [350, 650] range. If not provided, the value set in "
+    "`settings.DEFAULT_STEPSIZE` will be used.",
 )
 @click.option(
     "--exclude-zero-kernel-dist/--no-exclude-zero-kernel-dist",
     default=True,
-    help="Whether the calibration should consider parameters that lead to "
-    "decay functions with a kernel distance of zero pixels (i.e., "
-    "`t_air_average_radius` or `green_area_cooling_distance` lower than half "
-    "the LULC pixel resolution).",
+    help="Whether the calibration should consider parameters that lead to decay "
+    "functions with a kernel distance of zero pixels (i.e., `t_air_average_radius` or "
+    "`green_area_cooling_distance` lower than half the LULC pixel resolution).",
 )
 @click.option(
     "--num-workers",
     type=int,
-    help="Number of workers so that the simulations of each iteration can be "
-    "executed at scale. Only useful if calibrating for multiple dates. If not "
-    "provided, it will be set automatically depending on the number of dates "
-    "and available number of processors in the CPU.",
+    help="Number of workers so that the simulations of each iteration can be executed "
+    "at scale. Only useful if calibrating for multiple dates. If not provided, it will "
+    "be set automatically depending on the number of dates and available number of "
+    "processors in the CPU.",
 )
 @click.option(
     "--num-steps",
     type=int,
-    help="Number of iterations of the simulated annealing procedure. If not "
-    "provided, the value set in `settings.DEFAULT_NUM_STEPS` will be used.",
+    help="Number of iterations of the simulated annealing procedure. If not provided, "
+    "the value set in `settings.DEFAULT_NUM_STEPS` will be used.",
 )
 @click.option(
     "--num-update-logs",
     type=int,
     help="Number of updates that will be logged. If `num_steps` is equal to "
-    "`num_update_logs`, each iteration will be logged. If not provided, the "
-    "value set in `settings.DEFAULT_UPDATE_LOGS` will be used.",
+    "`num_update_logs`, each iteration will be logged. If not provided, the value set "
+    "in `settings.DEFAULT_UPDATE_LOGS` will be used.",
 )
 @click.option(
     "--dst-filepath",
     type=click.Path(),
     required=True,
-    help="Path to dump the calibrated parameters. If not provided, no file "
-    "will be created (nonetheless, the calibrated parameters will be logged)",
+    help="Path to dump the calibrated parameters. If not provided, no file will be "
+    "created (nonetheless, the calibrated parameters will be logged)",
 )
 def cli(
     lulc_raster_filepath,
