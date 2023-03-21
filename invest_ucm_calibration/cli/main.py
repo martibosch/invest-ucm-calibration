@@ -171,14 +171,6 @@ def _dict_from_kws(kws):
     "`green_area_cooling_distance` lower than half the LULC pixel resolution).",
 )
 @click.option(
-    "--num-workers",
-    type=int,
-    help="Number of workers so that the simulations of each iteration can be executed "
-    "at scale. Only useful if calibrating for multiple dates. If not provided, it will "
-    "be set automatically depending on the number of dates and available number of "
-    "processors in the CPU.",
-)
-@click.option(
     "--num-steps",
     type=int,
     help="Number of iterations of the simulated annealing procedure. If not provided, "
@@ -215,7 +207,6 @@ def cli(
     metric,
     stepsize,
     exclude_zero_kernel_dist,
-    num_workers,
     num_steps,
     num_update_logs,
     dst_filepath,
@@ -274,7 +265,6 @@ def cli(
         metric=metric,
         stepsize=stepsize,
         exclude_zero_kernel_dist=exclude_zero_kernel_dist,
-        num_workers=num_workers,
         num_steps=num_steps,
         num_update_logs=num_update_logs,
     )
