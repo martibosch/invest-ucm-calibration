@@ -47,6 +47,9 @@ jobs:
           environment-name: invest-ucm-calibration
           extra-specs: python=${{ matrix.python-version }}
 
+      - name: install dev requirements
+        run: pip install -r requirements-dev.txt
+
       - name: lint with pre-commit
         uses: pre-commit/action@v3.0.0
 
