@@ -48,7 +48,9 @@ jobs:
           extra-specs: python=${{ matrix.python-version }}
 
       - name: install dev requirements
-        run: pip install -r requirements-dev.txt
+        run: |
+          pip install -r requirements-dev.txt
+          pip install -r docs/requirements.txt
 
       - name: lint with pre-commit
         uses: pre-commit/action@v3.0.0
