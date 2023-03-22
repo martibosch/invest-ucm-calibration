@@ -127,13 +127,15 @@ def cli(
     logger.info("Best solution %s with cost %s", str(solution), cost)
 
     if dst_filepath:
+        # TODO: dry and reuse ucm_calibrator attributes
+        param_keys = list(settings.DEFAULT_UCM_PARAMS)
+        if cc_method == "factors":
+            param_keys += list(settings.DEFAULT_UCM_FACTORS_PARAMS)
         with open(dst_filepath, "w") as dst:
             json.dump(
                 {
                     param_key: param_value
-                    for param_key, param_value in zip(
-                        settings.DEFAULT_UCM_PARAMS, solution, strict=True
-                    )
+                    for param_key, param_value in zip(param_keys, solution, strict=True)
                 },
                 dst,
             )
