@@ -1,3 +1,4 @@
+"""Docs config."""
 project = "InVEST urban cooling model calibration"
 author = "Martí Bosch"
 

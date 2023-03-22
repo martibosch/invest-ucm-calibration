@@ -1,3 +1,4 @@
+"""CLI."""
 import json
 import logging
 import warnings
@@ -32,7 +33,7 @@ def cli(
     dst_filepath: Optional[str] = None,
 ):
     """
-    Calibrates the urban cooling model (UCM) using the provided data.
+    Calibrate the InVEST urban cooling model.
 
     Parameters
     ----------
@@ -131,7 +132,7 @@ def cli(
                 {
                     param_key: param_value
                     for param_key, param_value in zip(
-                        settings.DEFAULT_UCM_PARAMS, solution
+                        settings.DEFAULT_UCM_PARAMS, solution, strict=True
                     )
                 },
                 dst,
@@ -140,4 +141,5 @@ def cli(
 
 
 def main():
+    """Entrypoint."""
     fire.Fire(cli)

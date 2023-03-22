@@ -30,13 +30,8 @@ repos:
     hooks:
       - id: black
 
-  - repo: https://github.com/timothycrosley/isort
-    rev: 5.10.0
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.0.257
     hooks:
-      - id: isort
-
-  - repo: https://github.com/pycqa/flake8
-    rev: 4.0.0
-    hooks:
-      - id: flake8
-        additional_dependencies: [flake8-isort, flake8-docstrings]
+      - id: ruff
+        args: [--fix]

@@ -1,3 +1,4 @@
+"""Settings."""
 # DEFAULT_INITIAL_SOLUTION = [500, 100, 0.6, 0.2, 0.2]
 
 DEFAULT_UCM_PARAMS = {
