@@ -47,16 +47,22 @@ jobs:
           environment-name: invest-ucm-calibration
           extra-specs: python=${{ matrix.python-version }}
 
-      - name: run pre-commit
+      - name: lint with pre-commit
         uses: pre-commit/action@v3.0.0
 
-      - name: Install tox-gh-actions
-        run: |
-          python -m pip install --upgrade pip
-          pip install "tox-gh-actions>=2,<3"
+      - name: build docs
+        run: sphinx-build docs docs/_build
 
-      - name: test with tox
-        run: tox
+      - name: build package
+        run: |
+          python -m build
+          twine check dist/*
+
+      - name: install
+        run: pip install .
+
+      - name: run tests
+        run: pytest -s --cov=invest_ucm_calibration --cov-append --cov-report=xml --cov-report term-missing tests
 
       - uses: codecov/codecov-action@v3
         with:
