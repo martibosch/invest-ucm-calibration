@@ -90,7 +90,7 @@ class TestIUC(unittest.TestCase):
             t_raster_filepaths=t_raster_filepath,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
         # no t_refs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath,
@@ -101,7 +101,7 @@ class TestIUC(unittest.TestCase):
             t_raster_filepaths=t_raster_filepath,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
         # no uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath,
@@ -112,7 +112,7 @@ class TestIUC(unittest.TestCase):
             t_raster_filepaths=t_raster_filepath,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
         # both t_refs/uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath,
@@ -124,7 +124,7 @@ class TestIUC(unittest.TestCase):
             t_raster_filepaths=t_raster_filepath,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
         # unaligned temperature map (no t_refs/no uhi_maxs)
         iuc.UCMCalibrator(
             self.lulc_raster_filepath,
@@ -134,7 +134,7 @@ class TestIUC(unittest.TestCase):
             t_raster_filepaths=self.unaligned_t_raster_filepaths[0],
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
 
         # calibrate with measurements
         # no t_refs/no uhi_maxs
@@ -147,7 +147,7 @@ class TestIUC(unittest.TestCase):
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
         # no t_refs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath,
@@ -159,7 +159,7 @@ class TestIUC(unittest.TestCase):
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
         # no uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath,
@@ -171,7 +171,7 @@ class TestIUC(unittest.TestCase):
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
         # both t_refs/uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath,
@@ -184,7 +184,7 @@ class TestIUC(unittest.TestCase):
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
 
     def test_multiple_days(self):
         t_refs = [20, 21]
@@ -201,7 +201,7 @@ class TestIUC(unittest.TestCase):
             t_raster_filepaths=self.t_raster_filepaths,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
         # no t_refs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath,
@@ -212,7 +212,7 @@ class TestIUC(unittest.TestCase):
             t_raster_filepaths=self.t_raster_filepaths,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
         # no uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath,
@@ -223,7 +223,7 @@ class TestIUC(unittest.TestCase):
             t_raster_filepaths=self.t_raster_filepaths,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
         # both t_refs/uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath,
@@ -235,7 +235,7 @@ class TestIUC(unittest.TestCase):
             t_raster_filepaths=self.t_raster_filepaths,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
 
         # calibrate with measurements
         # no t_refs/no uhi_maxs
@@ -248,7 +248,7 @@ class TestIUC(unittest.TestCase):
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
         # no t_refs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath,
@@ -260,7 +260,7 @@ class TestIUC(unittest.TestCase):
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
         # no uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath,
@@ -272,7 +272,7 @@ class TestIUC(unittest.TestCase):
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
         # both t_refs/uhi_maxs
         iuc.UCMCalibrator(
             self.lulc_raster_filepath,
@@ -285,7 +285,7 @@ class TestIUC(unittest.TestCase):
             station_locations_filepath=self.station_locations_filepath,
             num_steps=self.num_steps,
             num_update_logs=self.num_update_logs,
-        )
+        ).calibrate()
 
     def test_dates(self):
         ref_et_raster_filepath = self.ref_et_raster_filepaths[0]
