@@ -617,7 +617,7 @@ class UCMCalibrator(simanneal.Annealer):
         extra_ucm_args=None,
         metric=None,
         stepsize=None,
-        exclude_zero_kernel_dist=True,
+        exclude_zero_kernel_dist=None,
         num_steps=None,
         num_update_logs=None,
     ):
@@ -691,11 +691,12 @@ class UCMCalibrator(simanneal.Annealer):
             and a 't_air_average_radius' of 500 at a given iteration, the solution for
             the next iteration will be uniformly sampled from the [350, 650] range. If
             not provided, it will be taken from `settings.DEFAULT_STEPSIZE`.
-        exclude_zero_kernel_dist : bool, default True
+        exclude_zero_kernel_dist : bool, optional.
             Whether the calibration should consider parameters that lead to decay
             functions with a kernel distance of zero pixels (i.e.,
             `t_air_average_radius` or `green_area_cooling_distance` lower than half the
-            LULC pixel resolution).
+            LULC pixel resolution). If not provided, the value set in
+            `settings.DEFAULT_EXCLUDE_ZERO_KERNEL_DIST` will be used.
         num_steps : int, optional.
             Number of iterations of the simulated annealing procedure. If not provided,
             the value set in `settings.DEFAULT_NUM_STEPS` will be used.
@@ -749,6 +750,8 @@ class UCMCalibrator(simanneal.Annealer):
         super().__init__(initial_solution)
 
         # whether we ensure that kernel decay distances are of at least one pixel
+        if exclude_zero_kernel_dist is None:
+            exclude_zero_kernel_dist = settings.DEFAULT_EXCLUDE_ZERO_KERNEL_DIST
         if exclude_zero_kernel_dist:
             with rio.open(self.ucm_wrapper.base_args["lulc_raster_path"]) as src:
                 # the chained `np.min` and `np.abs` corresponds to the way that the

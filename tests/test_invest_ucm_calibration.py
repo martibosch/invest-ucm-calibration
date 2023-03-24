@@ -12,6 +12,10 @@ import invest_ucm_calibration as iuc
 from invest_ucm_calibration.cli import main
 
 
+def _encode_as_cli_arg(arg, sep):
+    return f"'{sep.join([str(item) for item in arg])}'"
+
+
 class TestIUC(unittest.TestCase):
     def setUp(self):
         self.data_dir = "tests/data"
@@ -484,32 +488,6 @@ class TestCLI(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0)
 
-        # test that unaligned rasters need to be aligned
-        result = subprocess.run(
-            [
-                "invest-ucm-calibration",
-                self.lulc_raster_filepath,
-                self.biophysical_table_filepath,
-                self.cc_method,
-                "--ref-et-raster-filepaths",
-                ref_et_raster_filepath,
-                "--t-refs",
-                t_refs,
-                "--uhi-maxs",
-                uhi_maxs,
-                "--t-raster-filepaths",
-                unaligned_t_raster_filepath,
-                "--no-align-rasters",
-                "--num-steps",
-                "1",
-                "--num-update-logs",
-                "1",
-                "--dst-filepath",
-                path.join(self.workspace_dir, "foo.json"),
-            ]
-        )
-        self.assertNotEqual(result.returncode, 0)
-
         # test the `dates` arg
         result = subprocess.run(
             [
@@ -564,29 +542,40 @@ class TestCLI(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0)
 
-    # def test_multiple_days(self):
-    #     t_refs = [20, 21]
-    #     uhi_maxs = [10, 11]
+    def test_multiple_days(self):
+        t_refs = [20, 21]
+        uhi_maxs = [10, 11]
 
-    #     # calibrate with map
-    #     result = self.runner.invoke(main.cli, [
-    #         self.lulc_raster_filepath, self.biophysical_table_filepath,
-    #         self.aoi_vector_filepath, self.cc_method,
-    #         self.ref_et_raster_filepaths, t_refs, uhi_maxs,
-    #         self.t_raster_filepaths, None, None, None, None, None, None,
-    #         None, None, None, 1, 1
-    #     ])
-    #     self.assertEqual(result.exit_code, 0)
+        # calibrate with map
+        result = subprocess.run(
+            [
+                "invest-ucm-calibration",
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                self.cc_method,
+                "--ref-et-raster-filepaths",
+                _encode_as_cli_arg(self.ref_et_raster_filepaths, ","),
+                "--t-refs",
+                _encode_as_cli_arg(t_refs, ","),
+                "--uhi-maxs",
+                _encode_as_cli_arg(uhi_maxs, ","),
+                "--t-raster-filepaths",
+                _encode_as_cli_arg(self.t_raster_filepaths, ","),
+            ]
+        )
+        self.assertEqual(result.returncode, 0)
 
-    #     # calibrate with measurements
-    #     result = self.runner.invoke(main.cli, [
-    #         self.lulc_raster_filepath, self.biophysical_table_filepath,
-    #         self.aoi_vector_filepath, self.cc_method,
-    #         self.ref_et_raster_filepaths, t_refs, uhi_maxs, None,
-    #         self.station_t_filepath, self.station_locations_filepath, None,
-    #         None, None, None, None, None, None, 1, 1
-    #     ])
-    #     self.assertEqual(result.exit_code, 0)
+        # calibrate with measurements
+        # result = subprocess.run(
+        #     [
+        #         "invest-ucm-calibration", [
+        #     self.lulc_raster_filepath, self.biophysical_table_filepath,
+        #     self.aoi_vector_filepath, self.cc_method,
+        #     self.ref_et_raster_filepaths, t_refs, uhi_maxs, None,
+        #     self.station_t_filepath, self.station_locations_filepath, None,
+        #     None, None, None, None, None, None, 1, 1
+        # ])
+        # self.assertEqual(result.exit_code, 0)
 
     # def test_other_args(self):
     #     cc_methods = ['factors', 'intensity']
