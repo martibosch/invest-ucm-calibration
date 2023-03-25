@@ -546,24 +546,25 @@ class TestCLI(unittest.TestCase):
         t_refs = [20, 21]
         uhi_maxs = [10, 11]
 
-        # calibrate with map
-        result = subprocess.run(
-            [
-                "invest-ucm-calibration",
-                self.lulc_raster_filepath,
-                self.biophysical_table_filepath,
-                self.cc_method,
-                "--ref-et-raster-filepaths",
-                _encode_as_cli_arg(self.ref_et_raster_filepaths, ","),
-                "--t-refs",
-                _encode_as_cli_arg(t_refs, ","),
-                "--uhi-maxs",
-                _encode_as_cli_arg(uhi_maxs, ","),
-                "--t-raster-filepaths",
-                _encode_as_cli_arg(self.t_raster_filepaths, ","),
-            ]
-        )
-        self.assertEqual(result.returncode, 0)
+        for sep in [",", " "]:
+            # calibrate with map
+            result = subprocess.run(
+                [
+                    "invest-ucm-calibration",
+                    self.lulc_raster_filepath,
+                    self.biophysical_table_filepath,
+                    self.cc_method,
+                    "--ref-et-raster-filepaths",
+                    _encode_as_cli_arg(self.ref_et_raster_filepaths, sep),
+                    "--t-refs",
+                    _encode_as_cli_arg(t_refs, sep),
+                    "--uhi-maxs",
+                    _encode_as_cli_arg(uhi_maxs, sep),
+                    "--t-raster-filepaths",
+                    _encode_as_cli_arg(self.t_raster_filepaths, sep),
+                ]
+            )
+            self.assertEqual(result.returncode, 0)
 
         # calibrate with measurements
         # result = subprocess.run(
