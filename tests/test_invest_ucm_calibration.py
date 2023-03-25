@@ -425,8 +425,8 @@ class TestCLI(unittest.TestCase):
         # other parameters
         self.cc_methods = ["factors", "intensity"]
         self.date = "23-07-2020"
-        self.num_steps = 2
-        self.num_update_logs = 2
+        self.num_steps = "2"  # use str instead of int for the CLI
+        self.num_update_logs = "2"  # use str instead of int for the CLI
         self.workspace_dir = path.join(self.data_dir, "tmp")
         os.mkdir(self.workspace_dir)
 
@@ -460,9 +460,9 @@ class TestCLI(unittest.TestCase):
                     "--t-raster-filepaths",
                     t_raster_filepath,
                     "--num-steps",
-                    "1",
+                    self.num_steps,
                     "--num-update-logs",
-                    "1",
+                    self.num_update_logs,
                     "--dst-filepath",
                     path.join(self.workspace_dir, "foo.json"),
                 ],
@@ -485,9 +485,9 @@ class TestCLI(unittest.TestCase):
                     "--t-raster-filepaths",
                     unaligned_t_raster_filepath,
                     "--num-steps",
-                    "1",
+                    self.num_steps,
                     "--num-update-logs",
-                    "1",
+                    self.num_update_logs,
                     "--dst-filepath",
                     path.join(self.workspace_dir, "foo.json"),
                 ]
@@ -512,9 +512,9 @@ class TestCLI(unittest.TestCase):
                     "--dates",
                     self.date,
                     "--num-steps",
-                    "1",
+                    self.num_steps,
                     "--num-update-logs",
-                    "1",
+                    self.num_update_logs,
                     "--dst-filepath",
                     path.join(self.workspace_dir, "foo.json"),
                 ]
@@ -539,9 +539,9 @@ class TestCLI(unittest.TestCase):
                     "--station-locations-filepath",
                     self.station_locations_filepath,
                     "--num-steps",
-                    "1",
+                    self.num_steps,
                     "--num-update-logs",
-                    "1",
+                    self.num_update_logs,
                     "--dst-filepath",
                     path.join(self.workspace_dir, "bar.json"),
                 ],
@@ -552,7 +552,7 @@ class TestCLI(unittest.TestCase):
         t_refs = [20, 21]
         uhi_maxs = [10, 11]
 
-        for _cc_method in self.cc_methods:
+        for cc_method in self.cc_methods:
             for sep in [",", " "]:
                 # calibrate with map
                 result = subprocess.run(
@@ -560,7 +560,7 @@ class TestCLI(unittest.TestCase):
                         "invest-ucm-calibration",
                         self.lulc_raster_filepath,
                         self.biophysical_table_filepath,
-                        self.cc_method,
+                        cc_method,
                         "--ref-et-raster-filepaths",
                         _encode_as_cli_arg(self.ref_et_raster_filepaths, sep),
                         "--t-refs",
@@ -569,6 +569,10 @@ class TestCLI(unittest.TestCase):
                         _encode_as_cli_arg(uhi_maxs, sep),
                         "--t-raster-filepaths",
                         _encode_as_cli_arg(self.t_raster_filepaths, sep),
+                        "--num-steps",
+                        self.num_steps,
+                        "--num-update-logs",
+                        self.num_update_logs,
                     ]
                 )
                 self.assertEqual(result.returncode, 0)
@@ -579,7 +583,7 @@ class TestCLI(unittest.TestCase):
                         "invest-ucm-calibration",
                         self.lulc_raster_filepath,
                         self.biophysical_table_filepath,
-                        self.cc_method,
+                        cc_method,
                         "--ref-et-raster-filepaths",
                         _encode_as_cli_arg(self.ref_et_raster_filepaths, sep),
                         "--t-refs",
@@ -590,6 +594,10 @@ class TestCLI(unittest.TestCase):
                         self.station_t_filepath,
                         "--station-locations-filepath",
                         self.station_locations_filepath,
+                        "--num-steps",
+                        self.num_steps,
+                        "--num-update-logs",
+                        self.num_update_logs,
                     ]
                 )
                 self.assertEqual(result.returncode, 0)
