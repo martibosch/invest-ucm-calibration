@@ -814,16 +814,9 @@ class UCMCalibrator(simanneal.Annealer):
     def energy(self):
         """Compute the state's value of the metric to optimize (minimize)."""
         ucm_args = self._ucm_params_dict.copy()
-        pred_arr = np.hstack(
-            [
-                self.ucm_wrapper.predict_t_arr(i, ucm_args=ucm_args)
-                for i, _ in enumerate(self.ucm_wrapper.dates)
-            ]
-        ).flatten()[self.ucm_wrapper.sample_keys]
+        comparison_df = self.ucm_wrapper.get_sample_comparison_df(ucm_args=ucm_args)
 
-        return self.compute_metric(
-            self.ucm_wrapper.obs_arr, pred_arr[self.ucm_wrapper.obs_mask]
-        )
+        return self.compute_metric(comparison_df["obs"], comparison_df["pred"])
 
     def calibrate(self, *, initial_solution=None, num_steps=None, num_update_logs=None):
         """
