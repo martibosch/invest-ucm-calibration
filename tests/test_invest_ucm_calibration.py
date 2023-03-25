@@ -46,7 +46,7 @@ class TestIUC(unittest.TestCase):
         )
 
         # other parameters
-        self.cc_method = "factors"
+        self.cc_methods = ["factors", "intensity"]
         self.num_steps = 2
         self.num_update_logs = 2
         # self.workspace_dir = path.join(self.data_dir, 'tmp')
@@ -61,14 +61,15 @@ class TestIUC(unittest.TestCase):
         t_refs = 20
         uhi_maxs = 10
 
-        iuc.UCMWrapper(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            self.ref_et_raster_filepaths[0],
-            t_refs=t_refs,
-            uhi_maxs=uhi_maxs,
-        ).predict_t_da()
+        for cc_method in self.cc_methods:
+            iuc.UCMWrapper(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                self.ref_et_raster_filepaths[0],
+                t_refs=t_refs,
+                uhi_maxs=uhi_maxs,
+            ).predict_t_da()
 
         # TODO: test that proper (informative) errors are raised when calling methods
         # that require observed temperatures (e.g., `get_sample_comparison_df`,
@@ -80,214 +81,216 @@ class TestIUC(unittest.TestCase):
         t_refs = 20
         uhi_maxs = 10
 
-        # calibrate with map
-        # no t_refs/no uhi_maxs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            ref_et_raster_filepath,
-            t_raster_filepaths=t_raster_filepath,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
-        # no t_refs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            ref_et_raster_filepath,
-            uhi_maxs=uhi_maxs,
-            t_raster_filepaths=t_raster_filepath,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
-        # no uhi_maxs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            ref_et_raster_filepath,
-            t_refs=t_refs,
-            t_raster_filepaths=t_raster_filepath,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
-        # both t_refs/uhi_maxs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            ref_et_raster_filepath,
-            t_refs=t_refs,
-            uhi_maxs=uhi_maxs,
-            t_raster_filepaths=t_raster_filepath,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
-        # unaligned temperature map (no t_refs/no uhi_maxs)
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            ref_et_raster_filepath,
-            t_raster_filepaths=self.unaligned_t_raster_filepaths[0],
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
+        for cc_method in self.cc_methods:
+            # calibrate with map
+            # no t_refs/no uhi_maxs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                ref_et_raster_filepath,
+                t_raster_filepaths=t_raster_filepath,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # no t_refs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                ref_et_raster_filepath,
+                uhi_maxs=uhi_maxs,
+                t_raster_filepaths=t_raster_filepath,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # no uhi_maxs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                ref_et_raster_filepath,
+                t_refs=t_refs,
+                t_raster_filepaths=t_raster_filepath,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # both t_refs/uhi_maxs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                ref_et_raster_filepath,
+                t_refs=t_refs,
+                uhi_maxs=uhi_maxs,
+                t_raster_filepaths=t_raster_filepath,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # unaligned temperature map (no t_refs/no uhi_maxs)
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                ref_et_raster_filepath,
+                t_raster_filepaths=self.unaligned_t_raster_filepaths[0],
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
 
-        # calibrate with measurements
-        # no t_refs/no uhi_maxs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            ref_et_raster_filepath,
-            station_t_filepath=self.station_t_one_day_filepath,
-            station_locations_filepath=self.station_locations_filepath,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
-        # no t_refs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            ref_et_raster_filepath,
-            uhi_maxs=uhi_maxs,
-            station_t_filepath=self.station_t_one_day_filepath,
-            station_locations_filepath=self.station_locations_filepath,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
-        # no uhi_maxs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            ref_et_raster_filepath,
-            t_refs=t_refs,
-            station_t_filepath=self.station_t_one_day_filepath,
-            station_locations_filepath=self.station_locations_filepath,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
-        # both t_refs/uhi_maxs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            ref_et_raster_filepath,
-            t_refs=t_refs,
-            uhi_maxs=uhi_maxs,
-            station_t_filepath=self.station_t_one_day_filepath,
-            station_locations_filepath=self.station_locations_filepath,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
+            # calibrate with measurements
+            # no t_refs/no uhi_maxs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                ref_et_raster_filepath,
+                station_t_filepath=self.station_t_one_day_filepath,
+                station_locations_filepath=self.station_locations_filepath,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # no t_refs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                ref_et_raster_filepath,
+                uhi_maxs=uhi_maxs,
+                station_t_filepath=self.station_t_one_day_filepath,
+                station_locations_filepath=self.station_locations_filepath,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # no uhi_maxs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                ref_et_raster_filepath,
+                t_refs=t_refs,
+                station_t_filepath=self.station_t_one_day_filepath,
+                station_locations_filepath=self.station_locations_filepath,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # both t_refs/uhi_maxs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                ref_et_raster_filepath,
+                t_refs=t_refs,
+                uhi_maxs=uhi_maxs,
+                station_t_filepath=self.station_t_one_day_filepath,
+                station_locations_filepath=self.station_locations_filepath,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
 
     def test_multiple_days(self):
         t_refs = [20, 21]
         uhi_maxs = [10, 11]
 
-        # print(path.exists(t_raster_filepath))
-        # calibrate with map
-        # no t_refs/no uhi_maxs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            self.ref_et_raster_filepaths,
-            t_raster_filepaths=self.t_raster_filepaths,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
-        # no t_refs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            self.ref_et_raster_filepaths,
-            uhi_maxs=uhi_maxs,
-            t_raster_filepaths=self.t_raster_filepaths,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
-        # no uhi_maxs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            self.ref_et_raster_filepaths,
-            t_refs=t_refs,
-            t_raster_filepaths=self.t_raster_filepaths,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
-        # both t_refs/uhi_maxs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            self.ref_et_raster_filepaths,
-            t_refs=t_refs,
-            uhi_maxs=uhi_maxs,
-            t_raster_filepaths=self.t_raster_filepaths,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
+        for cc_method in self.cc_methods:
+            # calibrate with map
+            # no t_refs/no uhi_maxs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                self.ref_et_raster_filepaths,
+                t_raster_filepaths=self.t_raster_filepaths,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # no t_refs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                self.ref_et_raster_filepaths,
+                uhi_maxs=uhi_maxs,
+                t_raster_filepaths=self.t_raster_filepaths,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # no uhi_maxs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                self.ref_et_raster_filepaths,
+                t_refs=t_refs,
+                t_raster_filepaths=self.t_raster_filepaths,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # both t_refs/uhi_maxs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                self.ref_et_raster_filepaths,
+                t_refs=t_refs,
+                uhi_maxs=uhi_maxs,
+                t_raster_filepaths=self.t_raster_filepaths,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
 
-        # calibrate with measurements
-        # no t_refs/no uhi_maxs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            self.ref_et_raster_filepaths,
-            station_t_filepath=self.station_t_filepath,
-            station_locations_filepath=self.station_locations_filepath,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
-        # no t_refs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            self.ref_et_raster_filepaths,
-            uhi_maxs=uhi_maxs,
-            station_t_filepath=self.station_t_filepath,
-            station_locations_filepath=self.station_locations_filepath,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
-        # no uhi_maxs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            self.ref_et_raster_filepaths,
-            t_refs=t_refs,
-            station_t_filepath=self.station_t_filepath,
-            station_locations_filepath=self.station_locations_filepath,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
-        # both t_refs/uhi_maxs
-        iuc.UCMCalibrator(
-            self.lulc_raster_filepath,
-            self.biophysical_table_filepath,
-            self.cc_method,
-            self.ref_et_raster_filepaths,
-            t_refs=t_refs,
-            uhi_maxs=uhi_maxs,
-            station_t_filepath=self.station_t_filepath,
-            station_locations_filepath=self.station_locations_filepath,
-            num_steps=self.num_steps,
-            num_update_logs=self.num_update_logs,
-        ).calibrate()
+            # calibrate with measurements
+            # no t_refs/no uhi_maxs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                self.ref_et_raster_filepaths,
+                station_t_filepath=self.station_t_filepath,
+                station_locations_filepath=self.station_locations_filepath,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # no t_refs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                self.ref_et_raster_filepaths,
+                uhi_maxs=uhi_maxs,
+                station_t_filepath=self.station_t_filepath,
+                station_locations_filepath=self.station_locations_filepath,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # no uhi_maxs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                self.ref_et_raster_filepaths,
+                t_refs=t_refs,
+                station_t_filepath=self.station_t_filepath,
+                station_locations_filepath=self.station_locations_filepath,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # both t_refs/uhi_maxs
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                self.ref_et_raster_filepaths,
+                t_refs=t_refs,
+                uhi_maxs=uhi_maxs,
+                station_t_filepath=self.station_t_filepath,
+                station_locations_filepath=self.station_locations_filepath,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
 
     def test_dates(self):
+        cc_method = self.cc_methods[0]
         ref_et_raster_filepath = self.ref_et_raster_filepaths[0]
         t_raster_filepath = self.t_raster_filepaths[0]
         date = "23-07-2020"
@@ -301,7 +304,7 @@ class TestIUC(unittest.TestCase):
                 iuc.UCMCalibrator(
                     self.lulc_raster_filepath,
                     self.biophysical_table_filepath,
-                    self.cc_method,
+                    cc_method,
                     ref_et_raster_filepath,
                     t_raster_filepaths=t_raster_filepath,
                     num_steps=self.num_steps,
@@ -317,7 +320,7 @@ class TestIUC(unittest.TestCase):
             iuc.UCMCalibrator(
                 self.lulc_raster_filepath,
                 self.biophysical_table_filepath,
-                self.cc_method,
+                cc_method,
                 ref_et_raster_filepath,
                 t_raster_filepaths=t_raster_filepath,
                 dates=date,
@@ -331,7 +334,7 @@ class TestIUC(unittest.TestCase):
             iuc.UCMCalibrator(
                 self.lulc_raster_filepath,
                 self.biophysical_table_filepath,
-                self.cc_method,
+                cc_method,
                 ref_et_raster_filepath,
                 station_t_filepath=self.station_t_one_day_filepath,
                 station_locations_filepath=self.station_locations_filepath,
@@ -341,10 +344,11 @@ class TestIUC(unittest.TestCase):
         )
 
     def test_data_array(self):
+        cc_method = self.cc_methods[0]
         t_da = iuc.UCMCalibrator(
             self.lulc_raster_filepath,
             self.biophysical_table_filepath,
-            self.cc_method,
+            cc_method,
             self.ref_et_raster_filepaths,
             station_t_filepath=self.station_t_filepath,
             station_locations_filepath=self.station_locations_filepath,
@@ -357,10 +361,11 @@ class TestIUC(unittest.TestCase):
         self.assertEqual(len(t_da["time"]), len(self.ref_et_raster_filepaths))
 
     def test_data_frames(self):
+        cc_method = self.cc_methods[0]
         ucm_calibrator = iuc.UCMCalibrator(
             self.lulc_raster_filepath,
             self.biophysical_table_filepath,
-            self.cc_method,
+            cc_method,
             self.ref_et_raster_filepaths,
             station_t_filepath=self.station_t_filepath,
             station_locations_filepath=self.station_locations_filepath,
@@ -418,7 +423,7 @@ class TestCLI(unittest.TestCase):
         )
 
         # other parameters
-        self.cc_method = "factors"
+        self.cc_methods = ["factors", "intensity"]
         self.date = "23-07-2020"
         self.num_steps = 2
         self.num_update_logs = 2
@@ -438,145 +443,156 @@ class TestCLI(unittest.TestCase):
         t_refs = "20"
         uhi_maxs = "10"
 
-        # calibrate with an aligned map
-        result = subprocess.run(
-            [
-                "invest-ucm-calibration",
-                self.lulc_raster_filepath,
-                self.biophysical_table_filepath,
-                self.cc_method,
-                "--ref-et-raster-filepaths",
-                ref_et_raster_filepath,
-                "--t-refs",
-                t_refs,
-                "--uhi-maxs",
-                uhi_maxs,
-                "--t-raster-filepaths",
-                t_raster_filepath,
-                "--num-steps",
-                "1",
-                "--num-update-logs",
-                "1",
-                "--dst-filepath",
-                path.join(self.workspace_dir, "foo.json"),
-            ],
-        )
-        self.assertEqual(result.returncode, 0)
-
-        # calibrate with an unaligned map
-        result = subprocess.run(
-            [
-                "invest-ucm-calibration",
-                self.lulc_raster_filepath,
-                self.biophysical_table_filepath,
-                self.cc_method,
-                "--ref-et-raster-filepaths",
-                ref_et_raster_filepath,
-                "--t-refs",
-                t_refs,
-                "--uhi-maxs",
-                uhi_maxs,
-                "--t-raster-filepaths",
-                unaligned_t_raster_filepath,
-                "--num-steps",
-                "1",
-                "--num-update-logs",
-                "1",
-                "--dst-filepath",
-                path.join(self.workspace_dir, "foo.json"),
-            ]
-        )
-        self.assertEqual(result.returncode, 0)
-
-        # test the `dates` arg
-        result = subprocess.run(
-            [
-                "invest-ucm-calibration",
-                self.lulc_raster_filepath,
-                self.biophysical_table_filepath,
-                self.cc_method,
-                "--ref-et-raster-filepaths",
-                ref_et_raster_filepath,
-                "--t-refs",
-                t_refs,
-                "--uhi-maxs",
-                uhi_maxs,
-                "--t-raster-filepaths",
-                t_raster_filepath,
-                "--dates",
-                self.date,
-                "--num-steps",
-                "1",
-                "--num-update-logs",
-                "1",
-                "--dst-filepath",
-                path.join(self.workspace_dir, "foo.json"),
-            ]
-        )
-        self.assertEqual(result.returncode, 0)
-
-        # calibrate with measurements
-        result = subprocess.run(
-            [
-                "invest-ucm-calibration",
-                self.lulc_raster_filepath,
-                self.biophysical_table_filepath,
-                self.cc_method,
-                "--ref-et-raster-filepaths",
-                ref_et_raster_filepath,
-                "--t-refs",
-                t_refs,
-                "--uhi-maxs",
-                uhi_maxs,
-                "--station-t-filepath",
-                self.station_t_one_day_filepath,
-                "--station-locations-filepath",
-                self.station_locations_filepath,
-                "--num-steps",
-                "1",
-                "--num-update-logs",
-                "1",
-                "--dst-filepath",
-                path.join(self.workspace_dir, "bar.json"),
-            ],
-        )
-        self.assertEqual(result.returncode, 0)
-
-    def test_multiple_days(self):
-        t_refs = [20, 21]
-        uhi_maxs = [10, 11]
-
-        for sep in [",", " "]:
-            # calibrate with map
+        for cc_method in self.cc_methods:
+            # calibrate with an aligned map
             result = subprocess.run(
                 [
                     "invest-ucm-calibration",
                     self.lulc_raster_filepath,
                     self.biophysical_table_filepath,
-                    self.cc_method,
+                    cc_method,
                     "--ref-et-raster-filepaths",
-                    _encode_as_cli_arg(self.ref_et_raster_filepaths, sep),
+                    ref_et_raster_filepath,
                     "--t-refs",
-                    _encode_as_cli_arg(t_refs, sep),
+                    t_refs,
                     "--uhi-maxs",
-                    _encode_as_cli_arg(uhi_maxs, sep),
+                    uhi_maxs,
                     "--t-raster-filepaths",
-                    _encode_as_cli_arg(self.t_raster_filepaths, sep),
+                    t_raster_filepath,
+                    "--num-steps",
+                    "1",
+                    "--num-update-logs",
+                    "1",
+                    "--dst-filepath",
+                    path.join(self.workspace_dir, "foo.json"),
+                ],
+            )
+            self.assertEqual(result.returncode, 0)
+
+            # calibrate with an unaligned map
+            result = subprocess.run(
+                [
+                    "invest-ucm-calibration",
+                    self.lulc_raster_filepath,
+                    self.biophysical_table_filepath,
+                    cc_method,
+                    "--ref-et-raster-filepaths",
+                    ref_et_raster_filepath,
+                    "--t-refs",
+                    t_refs,
+                    "--uhi-maxs",
+                    uhi_maxs,
+                    "--t-raster-filepaths",
+                    unaligned_t_raster_filepath,
+                    "--num-steps",
+                    "1",
+                    "--num-update-logs",
+                    "1",
+                    "--dst-filepath",
+                    path.join(self.workspace_dir, "foo.json"),
                 ]
             )
             self.assertEqual(result.returncode, 0)
 
-        # calibrate with measurements
-        # result = subprocess.run(
-        #     [
-        #         "invest-ucm-calibration", [
-        #     self.lulc_raster_filepath, self.biophysical_table_filepath,
-        #     self.aoi_vector_filepath, self.cc_method,
-        #     self.ref_et_raster_filepaths, t_refs, uhi_maxs, None,
-        #     self.station_t_filepath, self.station_locations_filepath, None,
-        #     None, None, None, None, None, None, 1, 1
-        # ])
-        # self.assertEqual(result.exit_code, 0)
+            # test the `dates` arg
+            result = subprocess.run(
+                [
+                    "invest-ucm-calibration",
+                    self.lulc_raster_filepath,
+                    self.biophysical_table_filepath,
+                    cc_method,
+                    "--ref-et-raster-filepaths",
+                    ref_et_raster_filepath,
+                    "--t-refs",
+                    t_refs,
+                    "--uhi-maxs",
+                    uhi_maxs,
+                    "--t-raster-filepaths",
+                    t_raster_filepath,
+                    "--dates",
+                    self.date,
+                    "--num-steps",
+                    "1",
+                    "--num-update-logs",
+                    "1",
+                    "--dst-filepath",
+                    path.join(self.workspace_dir, "foo.json"),
+                ]
+            )
+            self.assertEqual(result.returncode, 0)
+
+            # calibrate with measurements
+            result = subprocess.run(
+                [
+                    "invest-ucm-calibration",
+                    self.lulc_raster_filepath,
+                    self.biophysical_table_filepath,
+                    cc_method,
+                    "--ref-et-raster-filepaths",
+                    ref_et_raster_filepath,
+                    "--t-refs",
+                    t_refs,
+                    "--uhi-maxs",
+                    uhi_maxs,
+                    "--station-t-filepath",
+                    self.station_t_one_day_filepath,
+                    "--station-locations-filepath",
+                    self.station_locations_filepath,
+                    "--num-steps",
+                    "1",
+                    "--num-update-logs",
+                    "1",
+                    "--dst-filepath",
+                    path.join(self.workspace_dir, "bar.json"),
+                ],
+            )
+            self.assertEqual(result.returncode, 0)
+
+    def test_multiple_days(self):
+        t_refs = [20, 21]
+        uhi_maxs = [10, 11]
+
+        for _cc_method in self.cc_methods:
+            for sep in [",", " "]:
+                # calibrate with map
+                result = subprocess.run(
+                    [
+                        "invest-ucm-calibration",
+                        self.lulc_raster_filepath,
+                        self.biophysical_table_filepath,
+                        self.cc_method,
+                        "--ref-et-raster-filepaths",
+                        _encode_as_cli_arg(self.ref_et_raster_filepaths, sep),
+                        "--t-refs",
+                        _encode_as_cli_arg(t_refs, sep),
+                        "--uhi-maxs",
+                        _encode_as_cli_arg(uhi_maxs, sep),
+                        "--t-raster-filepaths",
+                        _encode_as_cli_arg(self.t_raster_filepaths, sep),
+                    ]
+                )
+                self.assertEqual(result.returncode, 0)
+
+                # calibrate with measurements
+                result = subprocess.run(
+                    [
+                        "invest-ucm-calibration",
+                        self.lulc_raster_filepath,
+                        self.biophysical_table_filepath,
+                        self.cc_method,
+                        "--ref-et-raster-filepaths",
+                        _encode_as_cli_arg(self.ref_et_raster_filepaths, sep),
+                        "--t-refs",
+                        _encode_as_cli_arg(t_refs, sep),
+                        "--uhi-maxs",
+                        _encode_as_cli_arg(uhi_maxs, sep),
+                        "--station-t-filepath",
+                        self.station_t_filepath,
+                        "--station-locations-filepath",
+                        self.station_locations_filepath,
+                    ]
+                )
+                self.assertEqual(result.returncode, 0)
 
     # def test_other_args(self):
     #     cc_methods = ['factors', 'intensity']
