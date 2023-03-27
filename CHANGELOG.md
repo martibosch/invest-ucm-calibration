@@ -1,5 +1,42 @@
 # Change log
 
+## 0.6.0 (27/03/2022)
+
+### Features
+
+- feat: CLI args types, docstrings; fix aoi CLI arg; fix CLI tests
+- feat: rm stale config files
+- feat: accept aoi_vector_filepath arg
+- feat: compare random arg in `get_model_perf_df`
+- feat: predict t_da using rioxarray (also dropped dask)
+
+### Fixes
+
+- fix: drop stale dask requirement
+- fix: factors/intensity param keys:values in cli dump solution
+- fix: rm align CLI option and rm align req for t_raster in docstrings
+- fix: test the dates argument
+- fix: proper management of the dates arg/attr
+
+### Other
+
+- docs: remove refs to stale `predict_t` methods
+- docs: updated license file for github badge
+- docs: updated user guide for CLI (quotes, comma/space sep)
+- docs: updated README (install instructions, license badge)
+- docs: fix path to cli function, rtd install package
+- ci: skip existing in github actions test pypi
+- ci: added aoi tests
+- ci: fix num_steps/num_update_logs in cli tests
+- ci: test both cc_methods
+- refactor: use sample_comparison_df in calibration energy
+- ci: test cli for both comma and space separators
+- ci: calibrate in module tests
+- refactor: use keyword-only args
+- style: using ruff with numpy docstrings
+- refactor: using Python 3 super class syntax
+- docs: updated RTD config to use conda
+
 ## 0.5.0 (07/01/2022)
 
 - feat: run invest to align rasters to ensure consistent raster meta
