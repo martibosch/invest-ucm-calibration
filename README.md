@@ -2,7 +2,7 @@
 [![Documentation Status](https://readthedocs.org/projects/invest-ucm-calibration/badge/?version=latest)](https://invest-ucm-calibration.readthedocs.io/en/latest/?badge=latest)
 [![CI/CD](https://github.com/martibosch/invest-ucm-calibration/actions/workflows/dev.yml/badge.svg)](https://github.com/martibosch/invest-ucm-calibration/blob/main/.github/workflows/dev.yml)
 [![codecov](https://codecov.io/gh/martibosch/invest-ucm-calibration/branch/main/graph/badge.svg)](https://codecov.io/gh/martibosch/invest-ucm-calibration)
-[![GitHub license](https://img.shields.io/github/license/martibosch/invest-ucm-calibration.svg)](https://github.com/martibosch/invest-ucm-calibration/blob/master/LICENSE)
+[![GitHub license](https://img.shields.io/github/license/martibosch/invest-ucm-calibration.svg)](https://github.com/martibosch/invest-ucm-calibration/blob/main/LICENSE)
 
 # InVEST urban cooling model calibration
 
@@ -16,29 +16,17 @@ See [the user guide](https://invest-ucm-calibration.readthedocs.io/en/latest/use
 
 ## Installation
 
-This library requires the `gdal` library, which can easily be installed with conda as in:
+The easiest way to install this library is using conda (or mamba), as in:
 
 ```bash
-conda install -c conda-forge gdal
+conda install -c conda-forge invest-ucm-calibration
 ```
 
-Then, this library can be installed as in:
-
-```bash
-pip install invest-ucm-calibration
-```
-
-An alternative for the last step is to clone the repository and install it as in:
-
-```bash
-git clone https://github.com/martibosch/invest-ucm-calibration.git
-python setup.py install
-```
+which will install all the required dependencies including [InVEST](https://github.com/conda-forge/natcap.invest-feedstock) (minimum version 3.11.0). Otherwise, you can install the library with pip provided that all the dependencies (including GDAL) are installed.
 
 ## TODO
 
 - Allow a sequence of LULC rasters (although this would require an explicit mapping of each LULC/evapotranspiration/temperature raster or station measurement to a specific date)
-- Test calibration based on `cc_method='intensity'`
 - Support spatio-temporal datasets with [xarray](http://xarray.pydata.org) to avoid passing many separate rasters (and map each raster to a date more consistently)
 - Read both station measurements and station locations as a single geo-data frame
 
