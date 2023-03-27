@@ -2,7 +2,7 @@
 project = "InVEST urban cooling model calibration"
 author = "Martí Bosch"
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 version = __version__
 release = __version__
 
