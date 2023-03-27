@@ -48,12 +48,12 @@ which will dump the calibrated parameters to `calibrated-params.json`.
 
 ## Calibration for multiple days
 
-Regardless of whether we are calibrating with a temperare map or station measurements, we can calibratethe model to best-fit temperature observations for multiple days. To do so, we will provide a sequence of reference evapotranspiration rasters, e.g., `ref_et0.tif` and `ref_et1.tif`. For temperature maps, we can calibrate the model to best fit the maps of `T0.tif` and `T1.tif` as in:
+Regardless of whether we are calibrating with a temperare map or station measurements, we can calibratethe model to best-fit temperature observations for multiple days. To do so, we will provide a sequence of reference evapotranspiration rasters, e.g., `ref_et0.tif` and `ref_et1.tif` (which must be provided between quotes and separated using either a comma or a space character). For temperature maps, we can calibrate the model to best fit the maps of `T0.tif` and `T1.tif` (also quoted and separated by a space or a comma) as in:
 
 ```bash
 invest-ucm-calibration lulc.tif biophysical-table.csv factors \
-	--ref-et-raster-filepaths ref_et0.tif ref_et1.tif \
-	--t-raster-filepaths T0.tif T1.tif --num-steps 10 \
+	--ref-et-raster-filepaths "ref_et0.tif ref_et1.tif" \
+	--t-raster-filepaths "T0.tif T1.tif" --num-steps 10 \
 	--num-update-logs 10 --dst-filepath calibrated-params.json
 ```
 
@@ -61,7 +61,7 @@ Similarly, if we have the station measurements for the two days of `ref_et0.tif`
 
 ```bash
 invest-ucm-calibration lulc.tif biophysical-table.csv factors \
-	--ref-et-raster-filepaths ref_et0.tif ref_et1.tif \
+	--ref-et-raster-filepaths "ref_et0.tif ref_et1.tif" \
 	--station-t-filepath station-t.csv \
 	--station-location-filepaths station-locations.csv \
 	--num-steps 10 --num-update-logs 10 \
@@ -74,7 +74,9 @@ By default, the reference temperature and UHI magnitude (parameters of the urban
 
 ```bash
 invest-ucm-calibration lulc.tif biophysical-table.csv factors \
-	--ref-et-raster-filepaths ref_et0.tif ref_et1.tif --t-refs 22 20 \
-	--uhi-maxs 5 6 --t-raster-filepaths T0.tif T1.tif --num-steps 10 \
+	--ref-et-raster-filepaths "ref_et0.tif ref_et1.tif" --t-refs "22 20" \
+	--uhi-maxs "5 6" --t-raster-filepaths "T0.tif T1.tif" --num-steps 10 \
 	--num-update-logs 10 --dst-filepath calibrated-params.json# Usage
 ```
+
+Note again that the sequences of values after `--t-refs` and `--uhi-maxs` must be quoted and separated by a space or a comma.
