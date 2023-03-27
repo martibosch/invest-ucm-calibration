@@ -28,6 +28,9 @@ class TestIUC(unittest.TestCase):
             path.join(self.data_dir, "ref_et*.tif")
         )
 
+        # area of interest vector
+        self.aoi_vector_filepath = path.join(self.data_dir, "aoi.gpkg")
+
         # calibrate with temperature map
         self.t_raster_filepaths = glob.glob(path.join(self.data_dir, "T*.tif"))
 
@@ -67,6 +70,17 @@ class TestIUC(unittest.TestCase):
                 self.biophysical_table_filepath,
                 cc_method,
                 self.ref_et_raster_filepaths[0],
+                t_refs=t_refs,
+                uhi_maxs=uhi_maxs,
+            ).predict_t_da()
+
+            # test that we can provide an aoi vector
+            iuc.UCMWrapper(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                self.ref_et_raster_filepaths[0],
+                aoi_vector_filepath=self.aoi_vector_filepath,
                 t_refs=t_refs,
                 uhi_maxs=uhi_maxs,
             ).predict_t_da()
@@ -137,6 +151,28 @@ class TestIUC(unittest.TestCase):
                 num_steps=self.num_steps,
                 num_update_logs=self.num_update_logs,
             ).calibrate()
+            # aoi vector with aligned map
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                ref_et_raster_filepath,
+                aoi_vector_filepath=self.aoi_vector_filepath,
+                t_raster_filepaths=self.t_raster_filepaths[0],
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # aoi vector with unaligned map
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                ref_et_raster_filepath,
+                aoi_vector_filepath=self.aoi_vector_filepath,
+                t_raster_filepaths=self.unaligned_t_raster_filepaths[0],
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
 
             # calibrate with measurements
             # no t_refs/no uhi_maxs
@@ -182,6 +218,18 @@ class TestIUC(unittest.TestCase):
                 ref_et_raster_filepath,
                 t_refs=t_refs,
                 uhi_maxs=uhi_maxs,
+                station_t_filepath=self.station_t_one_day_filepath,
+                station_locations_filepath=self.station_locations_filepath,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # aoi vector
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                ref_et_raster_filepath,
+                aoi_vector_filepath=self.aoi_vector_filepath,
                 station_t_filepath=self.station_t_one_day_filepath,
                 station_locations_filepath=self.station_locations_filepath,
                 num_steps=self.num_steps,
@@ -238,6 +286,17 @@ class TestIUC(unittest.TestCase):
                 num_steps=self.num_steps,
                 num_update_logs=self.num_update_logs,
             ).calibrate()
+            # aoi vector
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                self.ref_et_raster_filepaths,
+                aoi_vector_filepath=self.aoi_vector_filepath,
+                t_raster_filepaths=self.t_raster_filepaths,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
 
             # calibrate with measurements
             # no t_refs/no uhi_maxs
@@ -283,6 +342,18 @@ class TestIUC(unittest.TestCase):
                 self.ref_et_raster_filepaths,
                 t_refs=t_refs,
                 uhi_maxs=uhi_maxs,
+                station_t_filepath=self.station_t_filepath,
+                station_locations_filepath=self.station_locations_filepath,
+                num_steps=self.num_steps,
+                num_update_logs=self.num_update_logs,
+            ).calibrate()
+            # aoi vector
+            iuc.UCMCalibrator(
+                self.lulc_raster_filepath,
+                self.biophysical_table_filepath,
+                cc_method,
+                self.ref_et_raster_filepaths,
+                aoi_vector_filepath=self.aoi_vector_filepath,
                 station_t_filepath=self.station_t_filepath,
                 station_locations_filepath=self.station_locations_filepath,
                 num_steps=self.num_steps,
@@ -392,6 +463,11 @@ class TestIUC(unittest.TestCase):
             ),
         )
 
+        # TODO: test that when providing an AOI vector, the sample comparison df, the
+        # number of samples is at most the same that without the AOI vector. I wonder
+        # whether this holds in all cases as the AOI can be bigger than the extent
+        # implicit in the input rasters/station locations
+
 
 class TestCLI(unittest.TestCase):
     def setUp(self):
@@ -404,6 +480,9 @@ class TestCLI(unittest.TestCase):
         self.ref_et_raster_filepaths = glob.glob(
             path.join(self.data_dir, "ref_et*.tif")
         )
+
+        # area of interest vector
+        self.aoi_vector_filepath = path.join(self.data_dir, "aoi.gpkg")
 
         # calibrate with temperature map
         self.t_raster_filepaths = glob.glob(path.join(self.data_dir, "T*.tif"))
@@ -494,6 +573,29 @@ class TestCLI(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0)
 
+            # test the aoi arg
+            result = subprocess.run(
+                [
+                    "invest-ucm-calibration",
+                    self.lulc_raster_filepath,
+                    self.biophysical_table_filepath,
+                    cc_method,
+                    "--ref-et-raster-filepaths",
+                    ref_et_raster_filepath,
+                    "--aoi-vector-filepath",
+                    self.aoi_vector_filepath,
+                    "--t-raster-filepaths",
+                    t_raster_filepath,
+                    "--num-steps",
+                    self.num_steps,
+                    "--num-update-logs",
+                    self.num_update_logs,
+                    "--dst-filepath",
+                    path.join(self.workspace_dir, "foo.json"),
+                ]
+            )
+            self.assertEqual(result.returncode, 0)
+
             # test the `dates` arg
             result = subprocess.run(
                 [
@@ -553,8 +655,8 @@ class TestCLI(unittest.TestCase):
         uhi_maxs = [10, 11]
 
         for cc_method in self.cc_methods:
+            # calibrate with map (test with both space and comma separator)
             for sep in [",", " "]:
-                # calibrate with map
                 result = subprocess.run(
                     [
                         "invest-ucm-calibration",
@@ -577,30 +679,30 @@ class TestCLI(unittest.TestCase):
                 )
                 self.assertEqual(result.returncode, 0)
 
-                # calibrate with measurements
-                result = subprocess.run(
-                    [
-                        "invest-ucm-calibration",
-                        self.lulc_raster_filepath,
-                        self.biophysical_table_filepath,
-                        cc_method,
-                        "--ref-et-raster-filepaths",
-                        _encode_as_cli_arg(self.ref_et_raster_filepaths, sep),
-                        "--t-refs",
-                        _encode_as_cli_arg(t_refs, sep),
-                        "--uhi-maxs",
-                        _encode_as_cli_arg(uhi_maxs, sep),
-                        "--station-t-filepath",
-                        self.station_t_filepath,
-                        "--station-locations-filepath",
-                        self.station_locations_filepath,
-                        "--num-steps",
-                        self.num_steps,
-                        "--num-update-logs",
-                        self.num_update_logs,
-                    ]
-                )
-                self.assertEqual(result.returncode, 0)
+            # calibrate with measurements (no need to test again different separators)
+            result = subprocess.run(
+                [
+                    "invest-ucm-calibration",
+                    self.lulc_raster_filepath,
+                    self.biophysical_table_filepath,
+                    cc_method,
+                    "--ref-et-raster-filepaths",
+                    _encode_as_cli_arg(self.ref_et_raster_filepaths, sep),
+                    "--t-refs",
+                    _encode_as_cli_arg(t_refs, sep),
+                    "--uhi-maxs",
+                    _encode_as_cli_arg(uhi_maxs, sep),
+                    "--station-t-filepath",
+                    self.station_t_filepath,
+                    "--station-locations-filepath",
+                    self.station_locations_filepath,
+                    "--num-steps",
+                    self.num_steps,
+                    "--num-update-logs",
+                    self.num_update_logs,
+                ]
+            )
+            self.assertEqual(result.returncode, 0)
 
     # def test_other_args(self):
     #     cc_methods = ['factors', 'intensity']

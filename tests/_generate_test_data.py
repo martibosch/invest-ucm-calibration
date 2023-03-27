@@ -2,12 +2,13 @@ import os
 import string
 from os import path
 
+import fiona
 import numpy as np
 import osr
 import pandas as pd
 import rasterio as rio
 from numpy import random as rn
-from rasterio import transform
+from rasterio import features, transform
 
 
 def dump_rasters(raster_filepaths, low, high, nodata, data_mask, dtype, meta):
@@ -154,3 +155,21 @@ station_t_df.to_csv(path.join(tests_data_dir, "station-t-one-day.csv"))
 # two dates
 station_t_df.loc[1] = rn.uniform(t_low, t_high, num_stations)
 station_t_df.to_csv(path.join(tests_data_dir, "station-t.csv"))
+
+# dump a randomly-generated AOI vector file
+with rio.open(lulc_raster_filepath) as src:
+    arr = np.ones(src.shape, dtype=rio.int16)
+    mask = np.zeros_like(arr).astype(bool)
+    mask[1:-1, 1:-1] = True
+    shapes = features.shapes(arr, mask=mask, transform=src.transform)
+
+schema = {"geometry": "Polygon", "properties": {"id": "int"}}
+
+# Create a new layer in the GeoPackage file
+with fiona.open(
+    path.join(tests_data_dir, "aoi.gpkg"), "w", driver="GPKG", schema=schema
+) as dst:
+    # Write the shapes to the new layer
+    for i, (geometry, _value) in enumerate(shapes):
+        feature = {"geometry": geometry, "properties": {"id": i + 1}}
+        dst.write(feature)
