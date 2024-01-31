@@ -12,7 +12,7 @@ Automated calibration of the InVEST urban cooling model with simulated annealing
 
 **Citation**: Bosch, M., Locatelli, M., Hamel, P., Remme, R. P., Chenal, J., and Joost, S. 2021. "A spatially-explicit approach to simulate urban heat mitigation with InVEST (v3.8.0)". *Geoscientific Model Development 14(6), 3521-3537*. [10.5194/gmd-14-3521-2021](https://doi.org/10.5194/gmd-14-3521-2021)
 
-See [the user guide](https://invest-ucm-calibration.readthedocs.io/en/latest/user-guide.html) for more information, or [the `lausanne-heat-islands` repository](https://github.com/martibosch/lausanne-heat-islands) for an example use of this library in an academic article.
+See [the user guide](https://invest-ucm-calibration.readthedocs.io/en/latest/usage.html) for more information, or [the `lausanne-heat-islands` repository](https://github.com/martibosch/lausanne-heat-islands) for an example use of this library in an academic article.
 
 ## Installation
 
